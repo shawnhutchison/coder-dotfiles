@@ -75,23 +75,9 @@ mkdir -p "$HOME/.claude"
 [ ! -f "$HOME/.claude/CLAUDE.md" ] && cp "$DOTFILES_DIR/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 cp "$DOTFILES_DIR/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
 chmod +x "$HOME/.claude/statusline.sh"
+mkdir -p "$HOME/.claude/commands"
+cp "$DOTFILES_DIR/.claude/commands/install-my-plugins.md" "$HOME/.claude/commands/install-my-plugins.md"
 echo "  Claude Code configured"
-
-# --- Claude Code plugins ---
-echo ""
-echo "Installing Claude Code plugins..."
-for plugin in \
-  ruby-lsp \
-  typescript-lsp \
-  code-review \
-  code-simplifier \
-  explanatory-output-style \
-  learning-output-style \
-  commit-commands; do
-  claude plugins install "${plugin}@claude-plugins-official" 2>/dev/null \
-    && echo "  Installed ${plugin}" \
-    || echo "  Skipped ${plugin} (may already be installed)"
-done
 
 # --- Zsh config ---
 echo ""
@@ -143,4 +129,6 @@ echo ""
 echo "Auth still needed:"
 echo "  gh auth login     # GitHub CLI"
 echo "  claude            # Claude Code (prompts on first run)"
+echo ""
+echo "After authenticating with Claude, run /install-my-plugins to install Claude Code plugins."
 echo ""
