@@ -1,10 +1,7 @@
-Install the following Claude Code plugins by running `claude plugins install <plugin>@claude-plugins-official` for each one. Report which were successfully installed and which failed.
+Install Claude Code plugins from the Roadrunner marketplace. Run the following commands in order:
 
-Plugins to install:
-- ruby-lsp
-- typescript-lsp
-- code-review
-- code-simplifier
-- explanatory-output-style
-- learning-output-style
-- commit-commands
+1. `claude plugins marketplace add RoadRunnerEngineering/rr-skills`
+2. `claude plugins install ruby-lsp@roadrunner-agent-skills`
+3. `claude plugins install typescript-lsp@roadrunner-agent-skills`
+
+Report which steps succeeded and which failed.
