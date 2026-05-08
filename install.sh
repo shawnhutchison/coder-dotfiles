@@ -60,7 +60,7 @@ fi
 echo ""
 echo "Installing Claude Code..."
 if ! command -v claude &> /dev/null; then
-  curl -fsSL https://claude.ai/install.sh | sh
+  curl -fsSL https://claude.ai/install.sh | bash
   export PATH="$HOME/.claude/bin:$PATH"
   echo "  Installed Claude Code CLI"
 else
@@ -80,8 +80,6 @@ echo "  Claude Code configured"
 # --- Claude Code plugins ---
 echo ""
 echo "Installing Claude Code plugins..."
-claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null || true
-
 for plugin in \
   ruby-lsp \
   typescript-lsp \
@@ -90,7 +88,7 @@ for plugin in \
   explanatory-output-style \
   learning-output-style \
   commit-commands; do
-  claude plugin install "${plugin}@claude-plugins-official" 2>/dev/null \
+  claude plugins install "${plugin}@claude-plugins-official" 2>/dev/null \
     && echo "  Installed ${plugin}" \
     || echo "  Skipped ${plugin} (may already be installed)"
 done
