@@ -6,7 +6,11 @@ export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 # --- Editor ---
-export EDITOR="${EDITOR:-vim}"
+if command -v nvim &> /dev/null; then
+  export EDITOR="nvim"
+else
+  export EDITOR="${EDITOR:-vim}"
+fi
 export VISUAL="$EDITOR"
 
 # --- History ---
@@ -55,6 +59,18 @@ alias gb='git branch'
 alias gd='git diff'
 alias gds='git diff --staged'
 alias glg='git log --graph --oneline --decorate --all'
+
+# --- Aliases: editor ---
+alias v='nvim'
+alias vi='nvim'
+alias vim='nvim'
+
+# --- Aliases: tmux ---
+alias t='tmux'
+alias ta='tmux attach -t'      # ta <name>  — attach to a session
+alias tn='tmux new -s'         # tn <name>  — start a named session
+alias tl='tmux ls'             # list sessions
+alias tk='tmux kill-session -t'
 
 # --- Aliases: misc ---
 alias reload='exec zsh'

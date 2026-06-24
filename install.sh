@@ -13,10 +13,29 @@ echo "Installing core packages..."
 if [ "$OS" = "Linux" ]; then
   sudo apt-get update -qq
   sudo apt-get install -y --no-install-recommends \
-    zsh git curl jq ripgrep fd-find unzip
+    zsh git curl jq ripgrep fd-find unzip tmux build-essential
 
   if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
     sudo ln -sf "$(which fdfind)" /usr/local/bin/fd
+  fi
+
+  # Neovim — apt ships an old version, so install the latest stable tarball
+  # into ~/.local/nvim (no root needed; ~/.local/bin is already on PATH).
+  if ! command -v nvim &> /dev/null; then
+    NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+    if ! curl -fsSLo /tmp/nvim.tar.gz "$NVIM_URL"; then
+      # Fall back to the pre-0.10.4 asset name.
+      curl -fsSLo /tmp/nvim.tar.gz \
+        "https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz"
+    fi
+    rm -rf "$HOME/.local/nvim"
+    mkdir -p "$HOME/.local/nvim" "$HOME/.local/bin"
+    tar -xzf /tmp/nvim.tar.gz -C "$HOME/.local/nvim" --strip-components=1
+    ln -sf "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+    rm /tmp/nvim.tar.gz
+    echo "  Installed Neovim"
+  else
+    echo "  Neovim already installed"
   fi
 
   if ! command -v fzf &> /dev/null; then
@@ -31,7 +50,7 @@ if [ "$OS" = "Linux" ]; then
 
 elif [ "$OS" = "Darwin" ]; then
   if command -v brew &> /dev/null; then
-    brew install ripgrep fd fzf jq 2>/dev/null || true
+    brew install ripgrep fd fzf jq neovim tmux 2>/dev/null || true
   else
     echo "  Homebrew not found — install from https://brew.sh"
   fi
@@ -60,6 +79,25 @@ chmod +x "$HOME/.claude/statusline.sh"
 mkdir -p "$HOME/.claude/commands"
 cp "$DOTFILES_DIR/.claude/commands/install-my-plugins.md" "$HOME/.claude/commands/install-my-plugins.md"
 echo "  Claude Code configured"
+
+# --- Neovim config ---
+echo ""
+echo "Configuring Neovim..."
+mkdir -p "$HOME/.config/nvim"
+cp "$DOTFILES_DIR/.config/nvim/init.lua" "$HOME/.config/nvim/init.lua"
+# Pre-install plugins headlessly so the first launch is instant (best effort).
+if command -v nvim &> /dev/null; then
+  nvim --headless "+Lazy! sync" +qa 2>/dev/null || true
+  echo "  Neovim configured (plugins synced)"
+else
+  echo "  Neovim config copied (plugins will install on first launch)"
+fi
+
+# --- tmux config ---
+echo ""
+echo "Configuring tmux..."
+cp "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
+echo "  tmux configured"
 
 # --- Zsh config ---
 echo ""
