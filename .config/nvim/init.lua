@@ -133,6 +133,7 @@ require("lazy").setup({
   -- Syntax highlighting / parsing ------------------------------------------
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "master", -- classic .configs API; the new `main` branch dropped it
     build = ":TSUpdate",
     config = function()
       require("nvim-treesitter.configs").setup({

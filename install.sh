@@ -86,8 +86,13 @@ echo "Configuring Neovim..."
 mkdir -p "$HOME/.config/nvim"
 cp "$DOTFILES_DIR/.config/nvim/init.lua" "$HOME/.config/nvim/init.lua"
 # Pre-install plugins headlessly so the first launch is instant (best effort).
+# Must block on `wait = true` -- the `+Lazy! sync` command form kicks off
+# clone/checkout/build as async jobs and returns immediately, so a bare `+qa`
+# can quit before a plugin's branch checkout finishes, leaving it cloned but
+# stuck on the wrong branch (e.g. nvim-treesitter's default `main`, which
+# lacks the classic `.configs` API this config relies on).
 if command -v nvim &> /dev/null; then
-  nvim --headless "+Lazy! sync" +qa 2>/dev/null || true
+  nvim --headless -c "lua require('lazy').sync({ wait = true, show = false })" -c "qa" 2>/dev/null || true
   echo "  Neovim configured (plugins synced)"
 else
   echo "  Neovim config copied (plugins will install on first launch)"
