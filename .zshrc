@@ -65,12 +65,19 @@ alias v='nvim'
 alias vi='nvim'
 alias vim='nvim'
 
-# --- Aliases: tmux ---
-alias t='tmux'
-alias ta='tmux attach -t'      # ta <name>  — attach to a session
-alias tn='tmux new -s'         # tn <name>  — start a named session
-alias tl='tmux ls'             # list sessions
-alias tk='tmux kill-session -t'
+# --- Aliases: herdr ---
+alias h='herdr'                     # start / reattach the default session
+alias hs='herdr --session'          # hs <name>  — start or reattach a named session
+alias hl='herdr session list'       # list sessions
+alias hstop='herdr session stop'    # hstop <name>  — stop a session, keep its state
+alias hrm='herdr session delete'    # hrm <name>    — delete a session and its state
+alias ha='herdr agent list'         # what every agent is currently doing
+alias hcfg='${EDITOR:-nvim} ~/.config/herdr/config.toml'
+alias hreload='herdr server reload-config'
+
+# The `dev` command — pick a Coder workspace and attach a Herdr client to it —
+# is deliberately NOT here. It runs on your own machine, not in the workspace,
+# so it lives in local/mac.zsh, which install.sh never copies.
 
 # --- Aliases: misc ---
 alias reload='exec zsh'
@@ -83,3 +90,20 @@ fi
 
 # --- Local overrides ---
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
+
+# --- Herdr autostart (opt-in) -----------------------------------------------
+# Land straight in Herdr when you open a shell on this box. Pairs well with a
+# Coder workspace that restarts nightly: the first launch after boot restores
+# your layout from ~/.config/herdr/session.json.
+#
+# Off by default because it surprises non-interactive logins. Enable with:
+#   echo 'export HERDR_AUTOSTART=1' >> ~/.zshrc.local
+#
+# Must stay below the .zshrc.local source above, so the flag is already set.
+# Guards: opted in, interactive shell, not already inside a Herdr pane
+# (HERDR_ENV=1 is set in every pane, and nesting is blocked by default), and
+# herdr is actually installed.
+if [ -n "$HERDR_AUTOSTART" ] && [[ $- == *i* ]] \
+  && [ -z "$HERDR_ENV" ] && command -v herdr &> /dev/null; then
+  exec herdr
+fi
