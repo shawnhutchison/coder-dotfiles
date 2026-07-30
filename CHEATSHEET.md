@@ -181,21 +181,47 @@ Herdr installs itself on the host on first connect, and `install.sh` puts it the
 too.
 
 ### Setting up your Mac
-The local client reads the **local** config, so without it your prefix and theme fall
-back to Herdr's defaults. You only need two things on the Mac:
+This repo is the payload Coder drops **into** a workspace, so the Mac half is kept
+out of it — `dev` and friends live in `local/mac.zsh`, which `install.sh` never
+copies. On your Mac:
 
 ```sh
-brew install herdr
+brew install herdr fzf jq
+coder login && coder config-ssh
+
 mkdir -p ~/.config/herdr
-cp .config/herdr/config.toml ~/.config/herdr/config.toml
+cp .config/herdr/config.toml ~/.config/herdr/config.toml   # local client reads this
+
+echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
 ```
 
-Running the full `install.sh` on your Mac also works, but it does more than this
-needs — it installs Claude Code, copies Claude config, and wires the agent-state
-hook, which only matter on the box where agents actually run.
+That config copy matters: the local client reads the **local** config, so without it
+your prefix is `ctrl+b` and the theme is Catppuccin.
 
-`dev` and friends are only defined where the `coder` CLI exists, so they appear on
-your Mac and not inside the workspace.
+Don't run the full `install.sh` on your Mac — it installs Claude Code, copies Claude
+config, and wires the agent-state hook, none of which belong on a machine that isn't
+running agents.
+
+### Keep the two Herdr versions in step
+Both machines have Herdr, doing different jobs — but they have to speak the same
+protocol. When you attach, the client compares its protocol version to the remote
+server's. **On a mismatch it replaces the remote binary and restarts the server,
+which ends whatever was running there** — including sessions you wanted to keep.
+
+Check before you assume a session is safe:
+```sh
+dev-version <workspace>    # prints local and remote versions side by side
+```
+
+If they've drifted, update deliberately rather than discovering it mid-attach:
+```sh
+brew upgrade herdr                      # local
+ssh coder.<workspace> herdr update      # remote
+```
+
+This is why `install.sh` installs Herdr on the workspace even though `--remote` can
+do it: provisioning it explicitly means the box starts at a known version, and the
+direct `ssh` + `herdr` path works without ever attaching a local client.
 
 ### Not possible today
 One Herdr client attaches to one server, and plugin v1 can't add sidebar entries or
