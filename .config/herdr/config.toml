@@ -51,7 +51,12 @@ resume_agents_on_restore = true
 
 # --- Terminal ----------------------------------------------------------------
 [terminal]
-default_shell = ""      # empty => $SHELL (zsh), then /bin/sh
+# Named explicitly rather than left empty (which would fall back to $SHELL, then
+# /bin/sh). We standardise on zsh both locally and in the Coder workspace, and a
+# fresh Coder box can still report $SHELL=/bin/bash if chsh hasn't taken effect
+# in the current session — this makes panes deterministic either way. Resolved
+# via PATH, so it works regardless of /bin/zsh vs /usr/bin/zsh.
+default_shell = "zsh"
 shell_mode = "auto"
 new_cwd = "follow"      # new panes/tabs inherit the source pane's directory
 

@@ -16,6 +16,14 @@ Lost? `Ctrl-Space` then `?` lists every active binding.
 
 ## 0. The 60-second quickstart
 
+From your Mac, one command gets you into a Coder workspace:
+
+```sh
+dev              # pick a Coder workspace → lands you in its Herdr session
+```
+
+Already on the box (or working locally):
+
 ```sh
 herdr            # start (or reattach to) your workspace — alias: h
 nvim .           # open nvim in the current directory
@@ -132,7 +140,55 @@ Herdr panes, no ambiguity about which one will react.
 
 ---
 
-## 3. Surviving the nightly Coder shutdown
+## 3. Coder workspaces — the `dev` command
+
+`dev` lists your Coder workspaces and turns the one you pick into a Herdr session:
+
+```sh
+dev                    # fuzzy-pick a workspace, then attach
+dev jade-capybara-52   # skip the picker
+dev-ls                 # just list workspaces and their status
+dev-ssh                # same picker, plain SSH shell instead of Herdr
+```
+
+A stopped workspace is started on connect, so you can pick one straight from the
+list without starting it first.
+
+### Which machine runs what
+
+Herdr splits into a **client** (draws the UI, reads your keyboard) and a **server**
+(owns the panes, the agents, the layout). `dev` runs the client on your Mac and the
+server on the Coder workspace:
+
+```
+  Your Mac                          Coder workspace
+  ┌──────────────────┐              ┌──────────────────────────┐
+  │ Ghostty          │              │ herdr SERVER             │
+  │ herdr CLIENT ────┼── ssh ──────▶│  ├ Claude Code panes     │
+  │  (the UI)        │              │  ├ nvim panes            │
+  └──────────────────┘              │  └ session.json          │
+                                    └──────────────────────────┘
+```
+
+Your work — agents, panes, `session.json` — lives on the box that has the code, so
+restart recovery (§4) is unaffected. What you gain by running the client locally:
+
+- **Local clipboard.** Copying in Herdr lands in your Mac's clipboard, not the remote
+  one. Image paste works too.
+- **Local keybindings.** Your `Ctrl-Space` prefix comes from your Mac's config.
+
+Herdr installs itself on the host on first connect, and `install.sh` puts it there
+too. Because the local client reads the local config, **run `install.sh` on your Mac
+as well** — otherwise your keybindings and theme come from Herdr's defaults.
+
+### Not possible today
+One Herdr client attaches to one server, and plugin v1 can't add sidebar entries or
+custom pickers. So you can't see agents from two Coder workspaces in a single
+sidebar — you switch between them with `dev` instead.
+
+---
+
+## 4. Surviving the nightly Coder shutdown
 
 This is the reason we moved off tmux. Coder workspaces stop each night, which killed
 the tmux server and took every session with it, because tmux only ever held that
@@ -181,7 +237,7 @@ echo 'export HERDR_AUTOSTART=1' >> ~/.zshrc.local
 
 ---
 
-## 4. Agent states — the actual reason for Herdr
+## 5. Agent states — the actual reason for Herdr
 
 Herdr knows what your agents are doing, and shows it in the sidebar:
 
@@ -208,7 +264,7 @@ herdr agent wait <target> --until blocked # wait for a specific state
 
 ---
 
-## 5. Neovim — the essentials
+## 6. Neovim — the essentials
 
 nvim is **modal**. The big mental shift from VSCode: you're usually in **Normal mode**
 (keys are commands), and you drop into **Insert mode** only to type text.
@@ -271,7 +327,7 @@ The grammar clicks once you see it as **verb + motion**: `d` (delete) + `w` (wor
 
 ---
 
-## 6. Fuzzy finding & file navigation (the VSCode "Ctrl-P" feeling)
+## 7. Fuzzy finding & file navigation (the VSCode "Ctrl-P" feeling)
 
 This is where you live. `Space` is the **leader** key — press and release it, then the next keys.
 
@@ -297,7 +353,7 @@ lists every shortcut that starts with it. That's your discovery tool.
 
 ---
 
-## 7. Claude Code in the terminal
+## 8. Claude Code in the terminal
 
 Same tool you know from VSCode, driven from a pane.
 
@@ -323,7 +379,7 @@ running — and unlike tmux, it also survives the workspace restarting overnight
 
 ---
 
-## 8. Going mouseless
+## 9. Going mouseless
 
 - **Panes:** `Ctrl-Alt-h/j/k/l`. **nvim splits:** `Ctrl-h/j/k/l`.
 - **Open files:** `Space f f` instead of clicking the explorer.
@@ -338,7 +394,7 @@ mouse habit for a keystroke and it compounds fast.
 
 ---
 
-## 9. First-run notes & troubleshooting
+## 10. First-run notes & troubleshooting
 
 - **Auth:** run `gh auth login` (GitHub) and `claude` (prompts on first launch).
 - **Icons look like boxes?** The file-tree/statusline icons need a **Nerd Font**.

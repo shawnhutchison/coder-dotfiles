@@ -75,6 +75,81 @@ alias ha='herdr agent list'         # what every agent is currently doing
 alias hcfg='${EDITOR:-nvim} ~/.config/herdr/config.toml'
 alias hreload='herdr server reload-config'
 
+# --- Coder workspaces + Herdr remote attach ---------------------------------
+# Herdr splits into a client (the UI) and a server (the panes, agents, layout).
+# `herdr --remote <host>` runs the client here and the server on the Coder
+# workspace: agents and ~/.config/herdr/session.json stay on the box that has
+# the code, while your clipboard and keybindings stay local.
+#
+# Depends on `coder config-ssh` having written the `Host coder.*` block into
+# ~/.ssh/config — already true if `ssh coder.<workspace>` works. That block's
+# ProxyCommand strips the `coder.` prefix, so the alias is `coder.<name>`.
+
+# Print "<name>  <status>" for every workspace you own.
+_coder_ws_list() {
+  coder list --output json 2>/dev/null \
+    | jq -r '.[] | [.name, .latest_build.status] | @tsv' \
+    | awk -F'\t' '{ printf "%-42s %s\n", $1, $2 }'
+}
+
+# Shared picker. Echoes the chosen workspace name, or nothing if cancelled.
+_coder_ws_pick() {
+  local cmd
+  for cmd in coder jq fzf; do
+    if ! command -v "$cmd" &> /dev/null; then
+      print -u2 "coder picker: '$cmd' not installed"
+      return 1
+    fi
+  done
+
+  local list
+  list=$(_coder_ws_list)
+  if [ -z "$list" ]; then
+    print -u2 "coder picker: no workspaces returned — try 'coder login'"
+    return 1
+  fi
+
+  print -r -- "$list" | fzf --height=40% --reverse --ansi \
+    --prompt='coder workspace > ' \
+    --header='enter to connect — a stopped workspace is started on connect' \
+    | awk '{ print $1 }'
+}
+
+# dev — the one command. Lists your Coder workspaces, and the one you pick
+# becomes a Herdr session: client here, server (and agents) on that box.
+#   dev              pick from a list
+#   dev <name>       skip the picker and go straight there
+dev() {
+  # Nesting is blocked by default, so fail with a useful message rather than
+  # letting herdr refuse after the ssh handshake.
+  if [ -n "$HERDR_ENV" ]; then
+    print -u2 "dev: already inside Herdr — detach first (prefix q)"
+    return 1
+  fi
+
+  local ws="$1"
+  if [ -z "$ws" ]; then
+    ws=$(_coder_ws_pick) || return 1
+    [ -z "$ws" ] && return 0
+  fi
+  herdr --remote "coder.$ws"
+}
+
+# dev-ssh — same picker, but a plain SSH shell instead of Herdr.
+dev-ssh() {
+  local ws="$1"
+  if [ -z "$ws" ]; then
+    ws=$(_coder_ws_pick) || return 1
+    [ -z "$ws" ] && return 0
+  fi
+  ssh "coder.$ws"
+}
+
+# dev-ls — just print the workspaces and their status.
+# A function rather than an alias, so it also works when sourced and called in
+# the same breath (aliases are expanded at parse time, functions are not).
+dev-ls() { _coder_ws_list; }
+
 # --- Aliases: misc ---
 alias reload='exec zsh'
 alias cls='clear'
