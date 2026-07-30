@@ -362,4 +362,13 @@ mouse habit for a keystroke and it compounds fast.
 - **Diagnose a pane:** `herdr agent explain <target>` explains how Herdr detected
   (or failed to detect) the agent in it.
 - **nvim plugins** are managed by lazy.nvim — run `:Lazy` inside nvim to see/update them.
+  Note this is lazy.nvim the *plugin manager*, not the LazyVim *distro*.
+- **No LSP in nvim, on purpose.** There's no go-to-definition, autocomplete, inline
+  diagnostics or format-on-save here — nvim is a fast reader and navigator, and the
+  code intelligence lives on the agent side instead. Claude Code has its own LSP
+  client, configured by the `ruby-lsp` and `typescript-lsp` plugins that
+  `/install-my-plugins` installs. The two are separate clients: adding LSP to nvim
+  would not give Claude anything, and Claude's plugins give nvim nothing. Only the
+  language-server binaries on disk are shared. If you later want it for your own
+  reading, add `nvim-lspconfig` + a completion engine to `init.lua`.
 - **Update Herdr:** `herdr update` (or `brew upgrade herdr` on macOS).
