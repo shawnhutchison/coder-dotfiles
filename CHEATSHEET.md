@@ -178,8 +178,24 @@ restart recovery (§4) is unaffected. What you gain by running the client locall
 - **Local keybindings.** Your `Ctrl-Space` prefix comes from your Mac's config.
 
 Herdr installs itself on the host on first connect, and `install.sh` puts it there
-too. Because the local client reads the local config, **run `install.sh` on your Mac
-as well** — otherwise your keybindings and theme come from Herdr's defaults.
+too.
+
+### Setting up your Mac
+The local client reads the **local** config, so without it your prefix and theme fall
+back to Herdr's defaults. You only need two things on the Mac:
+
+```sh
+brew install herdr
+mkdir -p ~/.config/herdr
+cp .config/herdr/config.toml ~/.config/herdr/config.toml
+```
+
+Running the full `install.sh` on your Mac also works, but it does more than this
+needs — it installs Claude Code, copies Claude config, and wires the agent-state
+hook, which only matter on the box where agents actually run.
+
+`dev` and friends are only defined where the `coder` CLI exists, so they appear on
+your Mac and not inside the workspace.
 
 ### Not possible today
 One Herdr client attaches to one server, and plugin v1 can't add sidebar entries or
@@ -211,6 +227,12 @@ start at boot; it restores on first launch.
 config, plus the hook that `install.sh` installs via
 `herdr integration install claude`, means an agent pane reattaches to its *original
 conversation* rather than opening a blank prompt.
+
+**This all rests on one assumption:** that your Coder workspace's `$HOME` is on a
+persistent volume. Both the state files above and the dotfiles repo itself (Coder
+clones it to `~/.config/coderv2/dotfiles`) live under `$HOME`. That's the standard
+Coder template setup — but if a template ever gives you an ephemeral home, you lose
+the sessions *and* the shell config together, and this section stops being true.
 
 Two things worth knowing:
 - `install.sh` deliberately copies only `config.toml` and never clears

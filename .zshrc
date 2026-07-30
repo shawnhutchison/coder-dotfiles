@@ -85,6 +85,12 @@ alias hreload='herdr server reload-config'
 # ~/.ssh/config — already true if `ssh coder.<workspace>` works. That block's
 # ProxyCommand strips the `coder.` prefix, so the alias is `coder.<name>`.
 
+# Only define these where they make sense. The same .zshrc is sourced on the
+# Coder workspace itself, where the coder CLI isn't installed and picking a Coder
+# workspace from inside one is meaningless — better that `dev` simply not exist
+# there than offer a command that always fails.
+if command -v coder &> /dev/null; then
+
 # Print "<name>  <status>" for every workspace you own.
 _coder_ws_list() {
   coder list --output json 2>/dev/null \
@@ -149,6 +155,8 @@ dev-ssh() {
 # A function rather than an alias, so it also works when sourced and called in
 # the same breath (aliases are expanded at parse time, functions are not).
 dev-ls() { _coder_ws_list; }
+
+fi  # command -v coder
 
 # --- Aliases: misc ---
 alias reload='exec zsh'
