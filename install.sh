@@ -13,7 +13,7 @@ echo "Installing core packages..."
 if [ "$OS" = "Linux" ]; then
   sudo apt-get update -qq
   sudo apt-get install -y --no-install-recommends \
-    zsh git curl jq ripgrep fd-find unzip tmux build-essential
+    zsh git curl jq ripgrep fd-find unzip build-essential
 
   if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
     sudo ln -sf "$(which fdfind)" /usr/local/bin/fd
@@ -50,10 +50,29 @@ if [ "$OS" = "Linux" ]; then
 
 elif [ "$OS" = "Darwin" ]; then
   if command -v brew &> /dev/null; then
-    brew install ripgrep fd fzf jq neovim tmux 2>/dev/null || true
+    brew install ripgrep fd fzf jq neovim 2>/dev/null || true
   else
     echo "  Homebrew not found — install from https://brew.sh"
   fi
+fi
+
+# --- Herdr ---
+# Terminal workspace manager (replaces tmux). Unlike tmux, Herdr persists its
+# session layout to ~/.config/herdr/session.json and restores it when the server
+# next starts — which is what makes a nightly Coder shutdown survivable.
+echo ""
+echo "Installing Herdr..."
+if ! command -v herdr &> /dev/null; then
+  if [ "$OS" = "Darwin" ] && command -v brew &> /dev/null; then
+    brew install herdr
+  else
+    # Official installer; drops the binary in ~/.local/bin (already on PATH).
+    curl -fsSL https://herdr.dev/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  echo "  Installed Herdr"
+else
+  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown))"
 fi
 
 
@@ -80,6 +99,22 @@ mkdir -p "$HOME/.claude/commands"
 cp "$DOTFILES_DIR/.claude/commands/install-my-plugins.md" "$HOME/.claude/commands/install-my-plugins.md"
 echo "  Claude Code configured"
 
+# --- Herdr <-> Claude Code integration ---
+# Installs ~/.claude/hooks/herdr-agent-state.sh and *merges* a hooks entry into
+# ~/.claude/settings.json. This is why it runs after the block above: that copy
+# would otherwise clobber the hook registration on a fresh box.
+#
+# The hook is what lets Herdr show Claude's live state (working/blocked/done) in
+# the sidebar, and what lets `resume_agents_on_restore` reattach a pane to its
+# original conversation after the Coder workspace restarts.
+echo ""
+echo "Wiring Herdr to Claude Code..."
+if command -v herdr &> /dev/null; then
+  herdr integration install claude && echo "  Agent-state hook installed"
+else
+  echo "  Skipped — herdr not on PATH"
+fi
+
 # --- Neovim config ---
 echo ""
 echo "Configuring Neovim..."
@@ -98,11 +133,25 @@ else
   echo "  Neovim config copied (plugins will install on first launch)"
 fi
 
-# --- tmux config ---
+# --- Herdr config ---
+# Copy the single config file only. ~/.config/herdr/ also holds session.json and
+# session-history.json — the restore state for workspaces, layouts and pane
+# scrollback — so this must never remove or replace the directory itself, or a
+# re-run of install.sh would throw away the sessions we're trying to preserve.
 echo ""
-echo "Configuring tmux..."
-cp "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
-echo "  tmux configured"
+echo "Configuring Herdr..."
+mkdir -p "$HOME/.config/herdr"
+cp "$DOTFILES_DIR/.config/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+if [ -f "$HOME/.config/herdr/session.json" ]; then
+  echo "  Herdr configured (existing session state left intact)"
+else
+  echo "  Herdr configured"
+fi
+
+# Pick up config changes if a server is already running; harmless otherwise.
+if command -v herdr &> /dev/null; then
+  herdr server reload-config > /dev/null 2>&1 || true
+fi
 
 # --- Zsh config ---
 echo ""
@@ -156,4 +205,10 @@ echo "  gh auth login     # GitHub CLI"
 echo "  claude            # Claude Code (prompts on first run)"
 echo ""
 echo "After authenticating with Claude, run /install-my-plugins to install Claude Code plugins."
+echo ""
+echo "Then start your workspace:"
+echo "  herdr             # starts the server and restores your last layout"
+echo ""
+echo "Prefix is Ctrl-Space. Press Ctrl-Space then ? for the full key list."
+echo "See CHEATSHEET.md for the workflow."
 echo ""

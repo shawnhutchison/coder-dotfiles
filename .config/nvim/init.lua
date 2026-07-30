@@ -1,6 +1,8 @@
 -- ============================================================================
--- Neovim config — lean file navigator for the tmux + Claude Code workflow.
--- Theme: Tokyo Night. Plugins managed by lazy.nvim (auto-bootstraps).
+-- Neovim config — lean file navigator for the Herdr + Claude Code workflow.
+-- Theme: Tokyo Night *Storm*. Keep the `style` below in sync with the pinned
+-- [theme.custom] block in .config/herdr/config.toml so both sides match.
+-- Plugins managed by lazy.nvim (auto-bootstraps).
 -- ============================================================================
 
 -- Leader must be set before lazy loads so plugin mappings pick it up.
@@ -44,8 +46,9 @@ local map = vim.keymap.set
 map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 map("n", "<leader>w", "<cmd>write<CR>", { desc = "Save file" })
 map("n", "<leader>q", "<cmd>quit<CR>", { desc = "Quit window" })
--- Move between windows with Ctrl + h/j/k/l (vim-tmux-navigator extends this
--- across tmux panes too, so it works seamlessly inside or outside tmux).
+-- Move between windows with Ctrl + h/j/k/l. These stay Neovim-only: Herdr has
+-- no vim-tmux-navigator equivalent, so pane movement lives on Ctrl+Alt+h/j/k/l
+-- (or prefix h/j/k/l) instead. No collision, nothing to arbitrate.
 map("n", "<C-h>", "<C-w>h", { desc = "Window left" })
 map("n", "<C-j>", "<C-w>j", { desc = "Window down" })
 map("n", "<C-k>", "<C-w>k", { desc = "Window up" })
@@ -163,9 +166,6 @@ require("lazy").setup({
 
   -- Comment toggling: gcc (line), gc (visual) -------------------------------
   { "numToStr/Comment.nvim", config = true },
-
-  -- Seamless navigation between nvim splits and tmux panes ------------------
-  { "christoomey/vim-tmux-navigator", lazy = false },
 
   -- Keybinding hints popup --------------------------------------------------
   { "folke/which-key.nvim", event = "VeryLazy", config = true },
