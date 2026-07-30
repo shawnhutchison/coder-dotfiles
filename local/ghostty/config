@@ -1,0 +1,59 @@
+# ============================================================================
+# LOCAL MACHINE ONLY — Ghostty runs on your Mac, not in the Coder workspace,
+# so install.sh never touches this. Symlinked into place:
+#   ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config
+#
+# Tokyo Night *Night* — the same variant as:
+#   .config/nvim/init.lua        style = "night"
+#   .config/herdr/config.toml    [theme.custom]
+# Change all three together or the three surfaces drift apart again.
+#
+# Colors are set explicitly rather than via `theme = tokyonight`, so this does
+# not depend on which theme names your Ghostty build happens to ship.
+# ============================================================================
+
+# --- Tokyo Night Night: base ------------------------------------------------
+background = 1a1b26
+foreground = c0caf5
+
+cursor-color = c0caf5
+cursor-text = 1a1b26
+
+selection-background = 283457
+selection-foreground = c0caf5
+
+# --- Terminal palette ------------------------------------------------------
+palette = 0=#15161e
+palette = 1=#f7768e
+palette = 2=#9ece6a
+palette = 3=#e0af68
+palette = 4=#7aa2f7
+palette = 5=#bb9af7
+palette = 6=#7dcfff
+palette = 7=#a9b1d6
+palette = 8=#414868
+palette = 9=#f7768e
+palette = 10=#9ece6a
+palette = 11=#e0af68
+palette = 12=#7aa2f7
+palette = 13=#bb9af7
+palette = 14=#7dcfff
+palette = 15=#c0caf5
+
+# --- Window ----------------------------------------------------------------
+# Herdr draws its own tab bar and sidebar, so Ghostty's chrome is redundant.
+window-padding-x = 4
+window-padding-y = 2
+window-decoration = true
+macos-titlebar-style = tabs
+
+# Scrollback is Herdr's job inside a session; keep a little for bare shells.
+scrollback-limit = 10000000
+
+# --- Font ------------------------------------------------------------------
+# No Nerd Font is installed on this machine, so the default is left in place.
+# Until one is installed, neo-tree/lualine icons render as boxes. To fix:
+#   brew install --cask font-jetbrains-mono-nerd-font
+# then uncomment:
+# font-family = "JetBrainsMono Nerd Font"
+font-size = 13

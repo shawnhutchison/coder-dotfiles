@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Neovim config — lean file navigator for the Herdr + Claude Code workflow.
--- Theme: Tokyo Night *Storm*. Keep the `style` below in sync with the pinned
+-- Theme: Tokyo Night *Night*. Keep the `style` below in sync with the pinned
 -- [theme.custom] block in .config/herdr/config.toml so both sides match.
 -- Plugins managed by lazy.nvim (auto-bootstraps).
 -- ============================================================================
@@ -77,7 +77,10 @@ require("lazy").setup({
     lazy = false,    -- load during startup
     priority = 1000, -- before other plugins so colors apply first
     config = function()
-      require("tokyonight").setup({ style = "storm" }) -- storm | moon | night | day
+      -- night (#1a1b26) is the darkest variant; storm (#24283b) reads blue next
+      -- to Ghostty and Herdr. Keep this in sync with [theme.custom] in
+      -- .config/herdr/config.toml and local/ghostty/config.
+      require("tokyonight").setup({ style = "night" }) -- storm | moon | night | day
       vim.cmd.colorscheme("tokyonight")
     end,
   },

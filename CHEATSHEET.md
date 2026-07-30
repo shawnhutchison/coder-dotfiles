@@ -447,9 +447,21 @@ mouse habit for a keystroke and it compounds fast.
 - **Auth:** run `gh auth login` (GitHub) and `claude` (prompts on first launch).
 - **Icons look like boxes?** The file-tree/statusline icons need a **Nerd Font**.
   In Ghostty, set one in your config, e.g. `font-family = "JetBrainsMono Nerd Font"`.
-- **Theming:** Herdr and nvim are both pinned to **Tokyo Night Storm**. Herdr's
-  palette is the `[theme.custom]` block in `.config/herdr/config.toml`; nvim's is
-  `style = "storm"` in `.config/nvim/init.lua`. Change both together or they drift.
+- **Theming:** three surfaces are pinned to **Tokyo Night Night** (`#1a1b26`), the
+  darkest variant. Change all three together or they drift apart:
+
+  | Surface | File | Setting |
+  |---|---|---|
+  | nvim | `.config/nvim/init.lua` (workspace) | `style = "night"` |
+  | Herdr UI | `~/.config/herdr/config.toml` (**your Mac** — the client paints it) | `[theme.custom]` |
+  | Ghostty | `local/ghostty/config` (your Mac) | `background` + `palette` |
+
+  Storm (`#24283b`) is the other common pick, but it reads visibly blue next to a
+  dark terminal background. Only the background family differs between the two —
+  every accent color is identical.
+- **Icons still boxes?** No Nerd Font is installed. `brew install --cask
+  font-jetbrains-mono-nerd-font`, then uncomment `font-family` in
+  `local/ghostty/config`.
 - **A keybinding does nothing?** Herdr disables invalid bindings rather than failing
   to start, and logs why. Check:
   ```sh

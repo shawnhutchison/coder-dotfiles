@@ -1,6 +1,6 @@
 # ============================================================================
 # Herdr — terminal workspace manager for the nvim + Claude Code workflow.
-# Replaces tmux. Prefix is ctrl+space. Theme matches Neovim (Tokyo Night Storm).
+# Replaces tmux. Prefix is ctrl+space. Theme matches Neovim (Tokyo Night Night).
 #
 # Session state lives beside this file in ~/.config/herdr/:
 #   session.json          workspaces, tab/pane layout, working directories
@@ -18,17 +18,21 @@ onboarding = false
 # --- Theme -------------------------------------------------------------------
 # Herdr ships a built-in "tokyo-night", but which upstream variant it tracks is
 # not guaranteed across releases. The [theme.custom] block below pins every
-# token to Tokyo Night *Storm* — the same variant .config/nvim/init.lua sets via
-# `style = "storm"` — so nvim and Herdr stay in lockstep. Change both together.
+# token to Tokyo Night *Night* — the same variant .config/nvim/init.lua sets via
+# `style = "night"` — so nvim and Herdr stay in lockstep. Change both together.
+#
+# Night rather than Storm because Storm's #24283b reads visibly blue against a
+# dark Ghostty background. Only the background family differs between the two
+# variants; every accent below is identical in both.
 [theme]
 name = "tokyo-night"
 auto_switch = false
 
 [theme.custom]
-panel_bg    = "#1f2335"  # bg_dark      — sidebar / chrome background
+panel_bg    = "#16161e"  # bg_dark      — sidebar / chrome background
 surface0    = "#292e42"  # bg_highlight — raised rows, selected sidebar entry
 surface1    = "#3b4261"  # fg_gutter    — borders, dividers
-surface_dim = "#24283b"  # bg           — matches nvim's editor background
+surface_dim = "#1a1b26"  # bg           — matches nvim's editor background
 overlay0    = "#545c7e"  # dark3        — inactive borders, muted glyphs
 overlay1    = "#737aa2"  # dark5        — secondary chrome
 text        = "#c0caf5"  # fg           — primary text
@@ -144,7 +148,7 @@ directory = "~/.herdr/worktrees"
 
 # --- UI ----------------------------------------------------------------------
 [ui]
-accent = "#7aa2f7"              # Tokyo Night Storm blue, same as theme accent
+accent = "#7aa2f7"              # Tokyo Night blue, same as theme accent
 sidebar_width = 28
 sidebar_min_width = 20
 sidebar_max_width = 40
