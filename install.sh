@@ -48,9 +48,38 @@ if [ "$OS" = "Linux" ]; then
     echo "  Installed fzf ${FZF_VERSION}"
   fi
 
+  # glow — renders markdown in the terminal. Agents produce a lot of .md
+  # analyses; `glow` with no argument browses every markdown file under the
+  # current tree. Not in Ubuntu's default repos, and adding Charm's apt repo
+  # needs root, so take the release tarball into ~/.local/bin like fzf above.
+  if ! command -v glow &> /dev/null; then
+    case "$(uname -m)" in
+      x86_64|amd64)  GLOW_ARCH="x86_64" ;;
+      aarch64|arm64) GLOW_ARCH="arm64" ;;
+      *)             GLOW_ARCH="" ;;
+    esac
+
+    if [ -n "$GLOW_ARCH" ]; then
+      GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      if [ -n "$GLOW_VERSION" ] && curl -fsSLo /tmp/glow.tar.gz \
+        "https://github.com/charmbracelet/glow/releases/latest/download/glow_${GLOW_VERSION}_Linux_${GLOW_ARCH}.tar.gz"; then
+        mkdir -p ~/.local/bin
+        # The binary sits inside a versioned directory in the archive.
+        tar -xzf /tmp/glow.tar.gz -C ~/.local/bin --strip-components=1 \
+          "glow_${GLOW_VERSION}_Linux_${GLOW_ARCH}/glow"
+        rm /tmp/glow.tar.gz
+        echo "  Installed glow ${GLOW_VERSION}"
+      else
+        echo "  Skipped glow (download failed)"
+      fi
+    else
+      echo "  Skipped glow (unsupported arch $(uname -m))"
+    fi
+  fi
+
 elif [ "$OS" = "Darwin" ]; then
   if command -v brew &> /dev/null; then
-    brew install ripgrep fd fzf jq neovim 2>/dev/null || true
+    brew install ripgrep fd fzf jq neovim glow 2>/dev/null || true
   else
     echo "  Homebrew not found — install from https://brew.sh"
   fi
@@ -63,16 +92,18 @@ fi
 echo ""
 echo "Installing Herdr..."
 if ! command -v herdr &> /dev/null; then
-  if [ "$OS" = "Darwin" ] && command -v brew &> /dev/null; then
-    brew install herdr
-  else
-    # Official installer; drops the binary in ~/.local/bin (already on PATH).
-    curl -fsSL https://herdr.dev/install.sh | sh
-  fi
+  # Official installer; drops the binary in ~/.local/bin (already on PATH).
+  curl -fsSL https://herdr.dev/install.sh | sh
   export PATH="$HOME/.local/bin:$PATH"
-  echo "  Installed Herdr"
+  echo "  Installed Herdr ($(herdr --version 2>/dev/null || echo unknown))"
 else
-  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown))"
+  # Already present — upgrade in place so a re-provisioned box lands on the
+  # latest Herdr rather than drifting (see CHEATSHEET, "Keep the two Herdr
+  # versions in step"). Non-fatal: a no-op or a network blip shouldn't abort
+  # the install under `set -e`.
+  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown)); updating..."
+  herdr update || true
+  echo "  Herdr now at $(herdr --version 2>/dev/null || echo unknown)"
 fi
 
 
