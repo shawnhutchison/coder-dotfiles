@@ -1,6 +1,6 @@
 # ============================================================================
 # Herdr — terminal workspace manager for the nvim + Claude Code workflow.
-# Replaces tmux. Prefix is ctrl+space. Theme matches Neovim (Tokyo Night Storm).
+# Replaces tmux. Prefix is ctrl+space. Theme matches Neovim (Tokyo Night Night).
 #
 # Session state lives beside this file in ~/.config/herdr/:
 #   session.json          workspaces, tab/pane layout, working directories
@@ -18,17 +18,21 @@ onboarding = false
 # --- Theme -------------------------------------------------------------------
 # Herdr ships a built-in "tokyo-night", but which upstream variant it tracks is
 # not guaranteed across releases. The [theme.custom] block below pins every
-# token to Tokyo Night *Storm* — the same variant .config/nvim/init.lua sets via
-# `style = "storm"` — so nvim and Herdr stay in lockstep. Change both together.
+# token to Tokyo Night *Night* — the same variant .config/nvim/init.lua sets via
+# `style = "night"` — so nvim and Herdr stay in lockstep. Change both together.
+#
+# Night rather than Storm because Storm's #24283b reads visibly blue against a
+# dark Ghostty background. Only the background family differs between the two
+# variants; every accent below is identical in both.
 [theme]
 name = "tokyo-night"
 auto_switch = false
 
 [theme.custom]
-panel_bg    = "#1f2335"  # bg_dark      — sidebar / chrome background
+panel_bg    = "#16161e"  # bg_dark      — sidebar / chrome background
 surface0    = "#292e42"  # bg_highlight — raised rows, selected sidebar entry
 surface1    = "#3b4261"  # fg_gutter    — borders, dividers
-surface_dim = "#24283b"  # bg           — matches nvim's editor background
+surface_dim = "#1a1b26"  # bg           — matches nvim's editor background
 overlay0    = "#545c7e"  # dark3        — inactive borders, muted glyphs
 overlay1    = "#737aa2"  # dark5        — secondary chrome
 text        = "#c0caf5"  # fg           — primary text
@@ -129,14 +133,37 @@ type = "pane"
 command = "claude"
 description = "Claude Code in a new pane"
 
-# Scratch git log without disturbing the layout.
+# Read markdown without disturbing the layout. `glow` with no argument opens a
+# browser over every .md file under the pane's directory, which is the common
+# case after an agent writes a batch of analyses. `q` closes it.
+[[keys.command]]
+key = "prefix+alt+m"
+type = "popup"
+command = "glow"
+description = "browse markdown"
+width = "88%"
+height = "88%"
+
+# lazygit — full-screen git TUI (stage, branch, diff, interactive log): a strict
+# superset of the static graph this key used to run. `q` closes the popup.
 [[keys.command]]
 key = "prefix+alt+g"
 type = "popup"
-command = "git log --graph --oneline --decorate --all --color=always | less -R"
-description = "git graph"
-width = "85%"
-height = "80%"
+command = "lazygit"
+description = "lazygit"
+width = "90%"
+height = "90%"
+
+# reviewr — toggle the code-review pane (github.com/persiyanov/herdr-reviewr).
+# type = "shell" runs the invoke detached, so it opens/closes reviewr's own split
+# in place rather than spawning a throwaway pane or popup. Lives on prefix+alt+r
+# (matching the claude/glow/lazygit chords) because prefix+shift+r — the intuitive
+# "Ctrl-Space R" — is already reload_config.
+[[keys.command]]
+key = "prefix+alt+r"
+type = "shell"
+command = "herdr plugin action invoke toggle --plugin persiyanov.reviewr"
+description = "toggle reviewr"
 
 # --- Worktrees ---------------------------------------------------------------
 [worktrees]
@@ -144,7 +171,7 @@ directory = "~/.herdr/worktrees"
 
 # --- UI ----------------------------------------------------------------------
 [ui]
-accent = "#7aa2f7"              # Tokyo Night Storm blue, same as theme accent
+accent = "#7aa2f7"              # Tokyo Night blue, same as theme accent
 sidebar_width = 28
 sidebar_min_width = 20
 sidebar_max_width = 40
@@ -168,9 +195,16 @@ rows = [
   ["agent", "state_text"],
 ]
 
+# `pane` comes first because it is the one label you control live: Ctrl-Space
+# Shift-P (rename_pane) prompts inside the interface and applies to the focused
+# pane. Without this token the name you type is stored but never displayed.
+#
+# Note `workspace` labels the *container* — every agent in one workspace shows
+# the same value, so it cannot distinguish two agents side by side. `pane` can.
 [ui.sidebar.agents.rows_by_agent]
 claude = [
-  ["state_icon", "workspace", "tab"],
+  ["state_icon", "pane"],
+  ["workspace", "tab"],
   ["terminal_title_stripped"],
   ["agent", "state_text"],
 ]
@@ -183,11 +217,16 @@ rows = [
   ["branch", "git_status"],
 ]
 
-# In-app toasts when a background agent finishes or needs input. "herdr" rather
-# than "system"/"terminal" because this runs over SSH on a headless Coder box,
-# where there is no desktop notification service to talk to.
+# Toasts when a background agent finishes or needs input. "terminal" asks the
+# *outer* terminal to raise a desktop notification — and in the thin-client
+# setup that terminal is Ghostty on the Mac (the Herdr client renders toasts
+# locally even though the server/agents live on the headless Coder box). So a
+# blocked agent pops a real macOS notification, not just an in-app toast.
+# ("system" would target a notification daemon on the headless box; there isn't
+# one. Switch back to "herdr" for in-app-only toasts.)
+# Note: macOS must allow Ghostty to notify (System Settings > Notifications).
 [ui.toast]
-delivery = "herdr"
+delivery = "terminal"
 delay_seconds = 1
 
 [ui.toast.herdr]

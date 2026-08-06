@@ -1,0 +1,19 @@
+# ============================================================================
+# herdr-reviewr plugin config — https://github.com/persiyanov/herdr-reviewr
+# A code-review sidebar: view an agent's diff, add line comments, send them back.
+#
+# install.sh copies this into the directory that
+#   herdr plugin config-dir persiyanov.reviewr
+# reports (the plugin id is "persiyanov.reviewr"), as config.toml. The path is
+# resolved at install time rather than hardcoded, so it tracks the plugin.
+#
+# Keep this file MINIMAL. Per the plugin's config spec a single unknown key or
+# invalid value makes the WHOLE file invalid, and an invalid config makes the
+# review pane refuse to do any work — so set only what we need and leave every
+# other key at its default.
+#
+# `tokyo-night` is reviewr's only dark Tokyo Night palette (there is no separate
+# night/storm split on this side). It reuses the same name Herdr and Neovim use,
+# so the review pane's chrome lines up with the rest of the workflow.
+# ============================================================================
+theme = "tokyo-night"

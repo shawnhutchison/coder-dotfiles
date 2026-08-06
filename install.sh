@@ -4,6 +4,11 @@ set -e
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 OS="$(uname -s)"
 
+# Surface prior ~/.local/bin installs to the `command -v` skip-guards below — the
+# install shell may not have it on PATH yet, which would otherwise re-download
+# tools that are already present.
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "=== Coder Dotfiles Installation ==="
 echo ""
 
@@ -39,18 +44,81 @@ if [ "$OS" = "Linux" ]; then
   fi
 
   if ! command -v fzf &> /dev/null; then
-    FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSLo /tmp/fzf.tar.gz \
-      "https://github.com/junegunn/fzf/releases/latest/download/fzf-${FZF_VERSION}-linux_amd64.tar.gz"
-    mkdir -p ~/.local/bin
-    tar -xzf /tmp/fzf.tar.gz -C ~/.local/bin fzf
-    rm /tmp/fzf.tar.gz
-    echo "  Installed fzf ${FZF_VERSION}"
+    # `|| true`: a bare `VAR=$(...)` that exits non-zero (grep no-match on an API
+    # rate-limit/error page) would trip `set -e` and abort the whole install.
+    FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
+    if [ -n "$FZF_VERSION" ] && curl -fsSLo /tmp/fzf.tar.gz \
+      "https://github.com/junegunn/fzf/releases/latest/download/fzf-${FZF_VERSION}-linux_amd64.tar.gz"; then
+      mkdir -p ~/.local/bin
+      tar -xzf /tmp/fzf.tar.gz -C ~/.local/bin fzf
+      rm /tmp/fzf.tar.gz
+      echo "  Installed fzf ${FZF_VERSION}"
+    else
+      echo "  Skipped fzf (download failed)"
+    fi
+  fi
+
+  # glow — renders markdown in the terminal. Agents produce a lot of .md
+  # analyses; `glow` with no argument browses every markdown file under the
+  # current tree. Not in Ubuntu's default repos, and adding Charm's apt repo
+  # needs root, so take the release tarball into ~/.local/bin like fzf above.
+  if ! command -v glow &> /dev/null; then
+    case "$(uname -m)" in
+      x86_64|amd64)  GLOW_ARCH="x86_64" ;;
+      aarch64|arm64) GLOW_ARCH="arm64" ;;
+      *)             GLOW_ARCH="" ;;
+    esac
+
+    if [ -n "$GLOW_ARCH" ]; then
+      GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
+      if [ -n "$GLOW_VERSION" ] && curl -fsSLo /tmp/glow.tar.gz \
+        "https://github.com/charmbracelet/glow/releases/latest/download/glow_${GLOW_VERSION}_Linux_${GLOW_ARCH}.tar.gz"; then
+        mkdir -p ~/.local/bin
+        # The binary sits inside a versioned directory in the archive.
+        tar -xzf /tmp/glow.tar.gz -C ~/.local/bin --strip-components=1 \
+          "glow_${GLOW_VERSION}_Linux_${GLOW_ARCH}/glow"
+        rm /tmp/glow.tar.gz
+        echo "  Installed glow ${GLOW_VERSION}"
+      else
+        echo "  Skipped glow (download failed)"
+      fi
+    else
+      echo "  Skipped glow (unsupported arch $(uname -m))"
+    fi
+  fi
+
+  # lazygit — full-screen git TUI, bound to a Herdr popup (prefix+alt+g). Same
+  # tarball-into-~/.local/bin pattern as fzf/glow.
+  if ! command -v lazygit &> /dev/null; then
+    case "$(uname -m)" in
+      x86_64|amd64)  LG_ARCH="x86_64" ;;
+      aarch64|arm64) LG_ARCH="arm64" ;;
+      *)             LG_ARCH="" ;;
+    esac
+
+    if [ -n "$LG_ARCH" ]; then
+      LG_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
+      # Note lowercase `linux` — jesseduffield names assets `lazygit_<v>_linux_<arch>`,
+      # unlike charmbracelet's capital `Linux` for glow above. Case matters: GitHub
+      # release asset URLs are case-sensitive, so `Linux` here 404s every time.
+      if [ -n "$LG_VERSION" ] && curl -fsSLo /tmp/lazygit.tar.gz \
+        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LG_VERSION}_linux_${LG_ARCH}.tar.gz"; then
+        mkdir -p ~/.local/bin
+        # Archive has the binary at its root alongside LICENSE/README.
+        tar -xzf /tmp/lazygit.tar.gz -C ~/.local/bin lazygit
+        rm /tmp/lazygit.tar.gz
+        echo "  Installed lazygit ${LG_VERSION}"
+      else
+        echo "  Skipped lazygit (download failed)"
+      fi
+    else
+      echo "  Skipped lazygit (unsupported arch $(uname -m))"
+    fi
   fi
 
 elif [ "$OS" = "Darwin" ]; then
   if command -v brew &> /dev/null; then
-    brew install ripgrep fd fzf jq neovim 2>/dev/null || true
+    brew install ripgrep fd fzf jq neovim glow lazygit 2>/dev/null || true
   else
     echo "  Homebrew not found — install from https://brew.sh"
   fi
@@ -63,16 +131,20 @@ fi
 echo ""
 echo "Installing Herdr..."
 if ! command -v herdr &> /dev/null; then
-  if [ "$OS" = "Darwin" ] && command -v brew &> /dev/null; then
-    brew install herdr
-  else
-    # Official installer; drops the binary in ~/.local/bin (already on PATH).
-    curl -fsSL https://herdr.dev/install.sh | sh
-  fi
+  # Official installer; drops the binary in ~/.local/bin (already on PATH).
+  curl -fsSL https://herdr.dev/install.sh | sh
   export PATH="$HOME/.local/bin:$PATH"
-  echo "  Installed Herdr"
+  echo "  Installed Herdr ($(herdr --version 2>/dev/null || echo unknown))"
 else
-  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown))"
+  # Already present — upgrade in place so a re-provisioned box lands on the
+  # latest Herdr rather than drifting (see CHEATSHEET, "Keep the two Herdr
+  # versions in step"). This also clears the reviewr plugin's version gate: its
+  # manifest sets min_herdr_version = 0.7.5, so an older Herdr makes the review
+  # pane refuse to start. Non-fatal: a no-op or a network blip shouldn't abort
+  # the install under `set -e`.
+  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown)); updating..."
+  herdr update || true
+  echo "  Herdr now at $(herdr --version 2>/dev/null || echo unknown)"
 fi
 
 
@@ -95,8 +167,6 @@ mkdir -p "$HOME/.claude"
 [ ! -f "$HOME/.claude/CLAUDE.md" ] && cp "$DOTFILES_DIR/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 cp "$DOTFILES_DIR/.claude/statusline.sh" "$HOME/.claude/statusline.sh"
 chmod +x "$HOME/.claude/statusline.sh"
-mkdir -p "$HOME/.claude/commands"
-cp "$DOTFILES_DIR/.claude/commands/install-my-plugins.md" "$HOME/.claude/commands/install-my-plugins.md"
 echo "  Claude Code configured"
 
 # --- Herdr <-> Claude Code integration ---
@@ -113,6 +183,39 @@ if command -v herdr &> /dev/null; then
   herdr integration install claude && echo "  Agent-state hook installed"
 else
   echo "  Skipped — herdr not on PATH"
+fi
+
+# --- Herdr plugins ---
+# reviewr (github.com/persiyanov/herdr-reviewr): a code-review sidebar for an
+# agent's diff — view changes, add line comments, send them back to the agent.
+# `herdr plugin install` fetches the prebuilt binary from the plugin's GitHub
+# release; no Rust toolchain needed. Requires Herdr >= 0.7.5 (the update above).
+echo ""
+echo "Installing Herdr plugins..."
+if command -v herdr &> /dev/null; then
+  if herdr plugin list 2>/dev/null | grep -q "reviewr"; then
+    echo "  reviewr already installed"
+  else
+    herdr plugin install -y persiyanov/herdr-reviewr \
+      && echo "  Installed reviewr" \
+      || echo "  Skipped reviewr (install failed)"
+  fi
+
+  # Theme reviewr to match nvim/Herdr/Ghostty. The plugin reads config.toml from
+  # the directory `herdr plugin config-dir` reports — resolved here rather than
+  # hardcoded. We ship only `theme`: per the plugin's config spec a single bad
+  # key invalidates the whole file and the pane then does no work.
+  # `|| true`: don't let a non-zero exit (e.g. plugin not installed) abort the
+  # whole install at this bare assignment under `set -e`.
+  REVIEWR_CFG_DIR="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null || true)"
+  if [ -n "$REVIEWR_CFG_DIR" ]; then
+    mkdir -p "$REVIEWR_CFG_DIR"
+    cp "$DOTFILES_DIR/.config/herdr/plugins/persiyanov.reviewr.toml" \
+      "$REVIEWR_CFG_DIR/config.toml"
+    echo "  reviewr themed (Tokyo Night)"
+  fi
+else
+  echo "  Skipped Herdr plugins — herdr not on PATH"
 fi
 
 # --- Neovim config ---
@@ -203,8 +306,6 @@ echo ""
 echo "Auth still needed:"
 echo "  gh auth login     # GitHub CLI"
 echo "  claude            # Claude Code (prompts on first run)"
-echo ""
-echo "After authenticating with Claude, run /install-my-plugins to install Claude Code plugins."
 echo ""
 echo "Then start your workspace:"
 echo "  herdr             # starts the server and restores your last layout"

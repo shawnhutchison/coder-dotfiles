@@ -47,9 +47,7 @@
       "Bash(touch *)",
       "Bash(tee *)",
       "Bash(xargs *)",
-      "Bash(diff *)",
-      "Bash(claude plugins marketplace add RoadRunnerEngineering/rr-skills)",
-      "Bash(claude plugins install *@roadrunner-agent-skills)"
+      "Bash(diff *)"
     ],
     "ask": [
       "Bash(rm *)",
