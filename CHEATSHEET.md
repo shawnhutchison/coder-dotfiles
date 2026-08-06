@@ -125,7 +125,8 @@ the same repo open side by side without stashing.
 | `Ctrl-Space g` | navigate mode — then `h/j/k/l` panes, `↑`/`↓` workspaces |
 | `Ctrl-Space s` | settings UI |
 | `Ctrl-Space Shift-R` | reload config after editing it |
-| `Ctrl-Space Alt-g` | git graph in a popup |
+| `Ctrl-Space Alt-g` | **lazygit** in a popup (stage, branch, diff, log) |
+| `Ctrl-Space Alt-m` | browse markdown with **glow** in a popup |
 
 ### Scrolling & copy mode
 - Mouse wheel just scrolls. Drag-select auto-copies.
@@ -174,7 +175,10 @@ Your work — agents, panes, `session.json` — lives on the box that has the co
 restart recovery (§4) is unaffected. What you gain by running the client locally:
 
 - **Local clipboard.** Copying in Herdr lands in your Mac's clipboard, not the remote
-  one. Image paste works too.
+  one. Image paste works too. Neovim yanks reach it as well — the config emits OSC 52
+  on yank (see §7), so `yy` on the remote box is pasteable with `Cmd-V` on the Mac.
+- **Local notifications.** A blocked agent raises a **macOS notification** via Ghostty,
+  not just an in-app toast — the client rendering the toast is the one on your Mac.
 - **Local keybindings.** Your `Ctrl-Space` prefix comes from your Mac's config.
 
 Herdr installs itself on the host on first connect, and `install.sh` puts it there
@@ -186,14 +190,19 @@ out of it — `dev` and friends live in `local/mac.zsh`, which `install.sh` neve
 copies. On your Mac:
 
 ```sh
-brew install herdr fzf jq
+brew install herdr fzf jq neovim glow lazygit
 coder login && coder config-ssh
 
 mkdir -p ~/.config/herdr
 cp .config/herdr/config.toml ~/.config/herdr/config.toml   # local client reads this
+ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config  # Ghostty theme + clipboard-write
 
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
 ```
+
+See the README's **Setup → On your Mac** for the canonical version of this. The
+Ghostty symlink is what sets `clipboard-write = allow`, which the yank→Mac-clipboard
+path (§7) depends on — don't skip it.
 
 That config copy matters: the local client reads the **local** config, so without it
 your prefix is `ctrl+b` and the theme is Catppuccin.
@@ -298,8 +307,10 @@ Herdr knows what your agents are doing, and shows it in the sidebar:
 | `unknown` | no integration reporting, or state not detectable |
 
 `blocked` is the one that earns its keep: run Claude in three workspaces at once and
-you don't have to poll them. The sidebar shows who needs you, an in-app toast fires
-when a background agent finishes or gets stuck, and `Ctrl-Space o` jumps you there.
+you don't have to poll them. The sidebar shows who needs you, a **macOS notification**
+fires when a background agent finishes or gets stuck (delivery is set to `terminal`, so
+the Herdr client on your Mac asks Ghostty to post it), and `Ctrl-Space o` jumps you
+there. macOS must allow Ghostty to notify — System Settings → Notifications → Ghostty.
 The agent panel is sorted by attention queue, so whoever needs you floats to the top.
 
 From the shell, the same information is scriptable:
@@ -418,7 +429,6 @@ up the Claude side in one keystroke.
 | type a prompt + `Enter` | ask / instruct |
 | `Shift-Enter` | newline without sending |
 | `/help` | list slash commands |
-| `/install-my-plugins` | install your Roadrunner plugins (after `claude` auth) |
 | `Esc` | interrupt Claude mid-response |
 | `Ctrl-c` / `Ctrl-d` | quit |
 
@@ -481,10 +491,6 @@ mouse habit for a keystroke and it compounds fast.
   Note this is lazy.nvim the *plugin manager*, not the LazyVim *distro*.
 - **No LSP in nvim, on purpose.** There's no go-to-definition, autocomplete, inline
   diagnostics or format-on-save here — nvim is a fast reader and navigator, and the
-  code intelligence lives on the agent side instead. Claude Code has its own LSP
-  client, configured by the `ruby-lsp` and `typescript-lsp` plugins that
-  `/install-my-plugins` installs. The two are separate clients: adding LSP to nvim
-  would not give Claude anything, and Claude's plugins give nvim nothing. Only the
-  language-server binaries on disk are shared. If you later want it for your own
+  code intelligence lives on the agent side instead. If you later want it for your own
   reading, add `nvim-lspconfig` + a completion engine to `init.lua`.
 - **Update Herdr:** `herdr update` (or `brew upgrade herdr` on macOS).
