@@ -50,6 +50,12 @@ macos-titlebar-style = tabs
 # Scrollback is Herdr's job inside a session; keep a little for bare shells.
 scrollback-limit = 10000000
 
+# Let terminal apps write the system clipboard via OSC 52 — this is what carries
+# a Neovim yank on the remote Coder box (through Herdr) into the Mac clipboard.
+# Write only; reads stay at Ghostty's default (prompted) so remote apps can't
+# silently exfiltrate the clipboard.
+clipboard-write = allow
+
 # --- Font ------------------------------------------------------------------
 # No Nerd Font is installed on this machine, so the default is left in place.
 # Until one is installed, neo-tree/lualine icons render as boxes. To fix:

@@ -40,6 +40,28 @@ opt.updatetime = 250
 opt.timeoutlen = 400           -- which-key popup delay
 
 -- ---------------------------------------------------------------------------
+-- System clipboard over OSC 52
+-- ---------------------------------------------------------------------------
+-- On a headless Coder box there is no clipboard provider, so a plain yank with
+-- `unnamedplus` reaches nothing. OSC 52 makes Neovim *encode* the yank into a
+-- terminal escape that rides through Herdr out to Ghostty, which writes the Mac
+-- clipboard. Copy only: terminals refuse OSC 52 *reads* for security, so paste
+-- comes from Neovim's own registers (a terminal round-trip on every paste would
+-- otherwise stall the pane). Needs `clipboard-write = allow` in the Ghostty
+-- config. Guarded so a pre-0.10 Neovim (no osc52 module) still loads.
+local ok_osc52, osc52 = pcall(require, "vim.ui.clipboard.osc52")
+if ok_osc52 then
+  local function paste()
+    return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+  end
+  vim.g.clipboard = {
+    name = "osc52",
+    copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+    paste = { ["+"] = paste, ["*"] = paste },
+  }
+end
+
+-- ---------------------------------------------------------------------------
 -- Core keymaps (plugin-specific maps live with their plugins below)
 -- ---------------------------------------------------------------------------
 local map = vim.keymap.set
@@ -82,6 +104,93 @@ require("lazy").setup({
       -- .config/herdr/config.toml and local/ghostty/config.
       require("tokyonight").setup({ style = "night" }) -- storm | moon | night | day
       vim.cmd.colorscheme("tokyonight")
+    end,
+  },
+
+  -- Start screen ------------------------------------------------------------
+  -- "BUILD SOMETHING" in a big figlet font, each letter a different Tokyo Night
+  -- accent. The header art + per-line color map are generated (figlet -f big);
+  -- to change the words, regenerate both tables together — the column ranges in
+  -- header_hl must line up with the glyphs in header_lines.
+  {
+    "goolord/alpha-nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    event = "VimEnter",
+    config = function()
+      local alpha = require("alpha")
+      local dashboard = require("alpha.themes.dashboard")
+
+      local header_lines = {
+        " ____    _    _   _____   _        _____   ",
+        "|  _ \\  | |  | | |_   _| | |      |  __ \\  ",
+        "| |_) | | |  | |   | |   | |      | |  | | ",
+        "|  _ <  | |  | |   | |   | |      | |  | | ",
+        "| |_) | | |__| |  _| |_  | |____  | |__| | ",
+        "|____/   \\____/  |_____| |______| |_____/  ",
+        "",
+        "  _____    ____    __  __   ______   _______   _    _   _____   _   _    _____  ",
+        " / ____|  / __ \\  |  \\/  | |  ____| |__   __| | |  | | |_   _| | \\ | |  / ____| ",
+        "| (___   | |  | | | \\  / | | |__       | |    | |__| |   | |   |  \\| | | |  __  ",
+        " \\___ \\  | |  | | | |\\/| | |  __|      | |    |  __  |   | |   | . ` | | | |_ | ",
+        " ____) | | |__| | | |  | | | |____     | |    | |  | |  _| |_  | |\\  | | |__| | ",
+        "|_____/   \\____/  |_|  |_| |______|    |_|    |_|  |_| |_____| |_| \\_|  \\_____| ",
+      }
+      local header_hl = {
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
+        {},
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
+      }
+      -- Palette pulled straight from Tokyo Night Night. Defined as standalone
+      -- groups (not linked to theme groups) so the colors are exact, and
+      -- re-applied on ColorScheme since a theme switch clears user highlights.
+      local palette = {
+        { "TokBlue", "#7aa2f7" },
+        { "TokMauve", "#bb9af7" },
+        { "TokGreen", "#9ece6a" },
+        { "TokYellow", "#e0af68" },
+        { "TokRed", "#f7768e" },
+        { "TokTeal", "#73daca" },
+        { "TokCyan", "#7dcfff" },
+        { "TokPeach", "#ff9e64" },
+      }
+      local function set_palette_hl()
+        for _, c in ipairs(palette) do
+          vim.api.nvim_set_hl(0, c[1], { fg = c[2], bold = true })
+        end
+      end
+      set_palette_hl()
+      vim.api.nvim_create_autocmd("ColorScheme", { callback = set_palette_hl })
+
+      dashboard.section.header.val = header_lines
+      dashboard.section.header.opts.hl = header_hl
+
+      -- Plain-text buttons (no Nerd Font glyphs — none is installed yet).
+      dashboard.section.buttons.val = {
+        dashboard.button("f", "Find file",     "<cmd>Telescope find_files<CR>"),
+        dashboard.button("r", "Recent files",  "<cmd>Telescope oldfiles<CR>"),
+        dashboard.button("g", "Grep project",  "<cmd>Telescope live_grep<CR>"),
+        dashboard.button("e", "File explorer", "<cmd>Neotree toggle<CR>"),
+        dashboard.button("q", "Quit",          "<cmd>qa<CR>"),
+      }
+      for _, button in ipairs(dashboard.section.buttons.val) do
+        button.opts.hl = "TokBlue"
+        button.opts.hl_shortcut = "TokYellow"
+      end
+
+      dashboard.section.footer.val = "build something"
+      dashboard.section.footer.opts.hl = "TokMauve"
+
+      alpha.setup(dashboard.opts)
     end,
   },
 
