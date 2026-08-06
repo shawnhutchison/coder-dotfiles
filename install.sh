@@ -99,7 +99,9 @@ if ! command -v herdr &> /dev/null; then
 else
   # Already present — upgrade in place so a re-provisioned box lands on the
   # latest Herdr rather than drifting (see CHEATSHEET, "Keep the two Herdr
-  # versions in step"). Non-fatal: a no-op or a network blip shouldn't abort
+  # versions in step"). This also clears the reviewr plugin's version gate: its
+  # manifest sets min_herdr_version = 0.7.5, so an older Herdr makes the review
+  # pane refuse to start. Non-fatal: a no-op or a network blip shouldn't abort
   # the install under `set -e`.
   echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown)); updating..."
   herdr update || true
@@ -144,6 +146,37 @@ if command -v herdr &> /dev/null; then
   herdr integration install claude && echo "  Agent-state hook installed"
 else
   echo "  Skipped — herdr not on PATH"
+fi
+
+# --- Herdr plugins ---
+# reviewr (github.com/persiyanov/herdr-reviewr): a code-review sidebar for an
+# agent's diff — view changes, add line comments, send them back to the agent.
+# `herdr plugin install` fetches the prebuilt binary from the plugin's GitHub
+# release; no Rust toolchain needed. Requires Herdr >= 0.7.5 (the update above).
+echo ""
+echo "Installing Herdr plugins..."
+if command -v herdr &> /dev/null; then
+  if herdr plugin list 2>/dev/null | grep -q "persiyanov.reviewr"; then
+    echo "  reviewr already installed"
+  else
+    herdr plugin install -y persiyanov/herdr-reviewr \
+      && echo "  Installed reviewr" \
+      || echo "  Skipped reviewr (install failed)"
+  fi
+
+  # Theme reviewr to match nvim/Herdr/Ghostty. The plugin reads config.toml from
+  # the directory `herdr plugin config-dir` reports — resolved here rather than
+  # hardcoded. We ship only `theme`: per the plugin's config spec a single bad
+  # key invalidates the whole file and the pane then does no work.
+  REVIEWR_CFG_DIR="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null)"
+  if [ -n "$REVIEWR_CFG_DIR" ]; then
+    mkdir -p "$REVIEWR_CFG_DIR"
+    cp "$DOTFILES_DIR/.config/herdr/plugins/persiyanov.reviewr.toml" \
+      "$REVIEWR_CFG_DIR/config.toml"
+    echo "  reviewr themed (Tokyo Night)"
+  fi
+else
+  echo "  Skipped Herdr plugins — herdr not on PATH"
 fi
 
 # --- Neovim config ---
