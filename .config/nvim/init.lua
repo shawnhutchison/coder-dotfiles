@@ -108,10 +108,12 @@ require("lazy").setup({
   },
 
   -- Start screen ------------------------------------------------------------
-  -- "BUILD SOMETHING" in a big figlet font, each letter a different Tokyo Night
-  -- accent. The header art + per-line color map are generated (figlet -f big);
-  -- to change the words, regenerate both tables together — the column ranges in
-  -- header_hl must line up with the glyphs in header_lines.
+  -- "BUILD SOMETHING" in figlet's ANSI Shadow, all Tokyo Night mauve, centered
+  -- in the window. BUILD is pre-padded so it sits centered over the wider
+  -- SOMETHING: alpha left-pads the whole header block by its longest line, it
+  -- does not center the two words independently. Regenerate the art with
+  -- `figlet -f "ANSI Shadow" BUILD` / `... SOMETHING` (the font is not one
+  -- figlet ships by default — grab "ANSI Shadow.flf" and pass `-d <dir>`).
   {
     "goolord/alpha-nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -121,47 +123,27 @@ require("lazy").setup({
       local dashboard = require("alpha.themes.dashboard")
 
       local header_lines = {
-        " ____    _    _   _____   _        _____   ",
-        "|  _ \\  | |  | | |_   _| | |      |  __ \\  ",
-        "| |_) | | |  | |   | |   | |      | |  | | ",
-        "|  _ <  | |  | |   | |   | |      | |  | | ",
-        "| |_) | | |__| |  _| |_  | |____  | |__| | ",
-        "|____/   \\____/  |_____| |______| |_____/  ",
+        "                   ██████╗ ██╗   ██╗██╗██╗     ██████╗ ",
+        "                   ██╔══██╗██║   ██║██║██║     ██╔══██╗",
+        "                   ██████╔╝██║   ██║██║██║     ██║  ██║",
+        "                   ██╔══██╗██║   ██║██║██║     ██║  ██║",
+        "                   ██████╔╝╚██████╔╝██║███████╗██████╔╝",
+        "                   ╚═════╝  ╚═════╝ ╚═╝╚══════╝╚═════╝ ",
         "",
-        "  _____    ____    __  __   ______   _______   _    _   _____   _   _    _____  ",
-        " / ____|  / __ \\  |  \\/  | |  ____| |__   __| | |  | | |_   _| | \\ | |  / ____| ",
-        "| (___   | |  | | | \\  / | | |__       | |    | |__| |   | |   |  \\| | | |  __  ",
-        " \\___ \\  | |  | | | |\\/| | |  __|      | |    |  __  |   | |   | . ` | | | |_ | ",
-        " ____) | | |__| | | |  | | | |____     | |    | |  | |  _| |_  | |\\  | | |__| | ",
-        "|_____/   \\____/  |_|  |_| |______|    |_|    |_|  |_| |_____| |_| \\_|  \\_____| ",
+        "███████╗ ██████╗ ███╗   ███╗███████╗████████╗██╗  ██╗██╗███╗   ██╗ ██████╗ ",
+        "██╔════╝██╔═══██╗████╗ ████║██╔════╝╚══██╔══╝██║  ██║██║████╗  ██║██╔════╝ ",
+        "███████╗██║   ██║██╔████╔██║█████╗     ██║   ███████║██║██╔██╗ ██║██║  ███╗",
+        "╚════██║██║   ██║██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║██║╚██╗██║██║   ██║",
+        "███████║╚██████╔╝██║ ╚═╝ ██║███████╗   ██║   ██║  ██║██║██║ ╚████║╚██████╔╝",
+        "╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ",
       }
-      local header_hl = {
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        { { "TokBlue", 0, 7 }, { "TokMauve", 8, 16 }, { "TokGreen", 17, 24 }, { "TokYellow", 25, 33 }, { "TokRed", 34, 42 } },
-        {},
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-        { { "TokTeal", 0, 8 }, { "TokCyan", 9, 17 }, { "TokPeach", 18, 26 }, { "TokBlue", 27, 35 }, { "TokMauve", 36, 45 }, { "TokGreen", 46, 54 }, { "TokYellow", 55, 62 }, { "TokRed", 63, 70 }, { "TokTeal", 71, 79 } },
-      }
-      -- Palette pulled straight from Tokyo Night Night. Defined as standalone
-      -- groups (not linked to theme groups) so the colors are exact, and
-      -- re-applied on ColorScheme since a theme switch clears user highlights.
+
+      -- Mauve for the header + footer, blue for the action buttons. Standalone
+      -- groups (exact hexes), re-applied on ColorScheme since a theme switch
+      -- clears user highlights.
       local palette = {
-        { "TokBlue", "#7aa2f7" },
         { "TokMauve", "#bb9af7" },
-        { "TokGreen", "#9ece6a" },
-        { "TokYellow", "#e0af68" },
-        { "TokRed", "#f7768e" },
-        { "TokTeal", "#73daca" },
-        { "TokCyan", "#7dcfff" },
-        { "TokPeach", "#ff9e64" },
+        { "TokBlue", "#7aa2f7" },
       }
       local function set_palette_hl()
         for _, c in ipairs(palette) do
@@ -172,9 +154,8 @@ require("lazy").setup({
       vim.api.nvim_create_autocmd("ColorScheme", { callback = set_palette_hl })
 
       dashboard.section.header.val = header_lines
-      dashboard.section.header.opts.hl = header_hl
+      dashboard.section.header.opts.hl = "TokMauve"
 
-      -- Plain-text buttons (no Nerd Font glyphs — none is installed yet).
       dashboard.section.buttons.val = {
         dashboard.button("f", "Find file",     "<cmd>Telescope find_files<CR>"),
         dashboard.button("r", "Recent files",  "<cmd>Telescope oldfiles<CR>"),
@@ -184,11 +165,30 @@ require("lazy").setup({
       }
       for _, button in ipairs(dashboard.section.buttons.val) do
         button.opts.hl = "TokBlue"
-        button.opts.hl_shortcut = "TokYellow"
+        button.opts.hl_shortcut = "TokMauve"
       end
 
       dashboard.section.footer.val = "build something"
       dashboard.section.footer.opts.hl = "TokMauve"
+
+      -- Center vertically. The top padding is a *function*, so alpha
+      -- re-evaluates it on every draw (it tracks window resizes): half the
+      -- height left over above the fixed content block below.
+      local n_buttons = #dashboard.section.buttons.val
+      local content_height = #header_lines + 2 + (2 * n_buttons - 1) + 1 + 1
+      dashboard.opts.layout = {
+        {
+          type = "padding",
+          val = function()
+            return math.max(0, math.floor((vim.api.nvim_win_get_height(0) - content_height) / 2))
+          end,
+        },
+        dashboard.section.header,
+        { type = "padding", val = 2 },
+        dashboard.section.buttons,
+        { type = "padding", val = 1 },
+        dashboard.section.footer,
+      }
 
       alpha.setup(dashboard.opts)
     end,
