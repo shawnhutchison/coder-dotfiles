@@ -144,14 +144,15 @@ description = "browse markdown"
 width = "88%"
 height = "88%"
 
-# Scratch git log without disturbing the layout.
+# lazygit — full-screen git TUI (stage, branch, diff, interactive log): a strict
+# superset of the static graph this key used to run. `q` closes the popup.
 [[keys.command]]
 key = "prefix+alt+g"
 type = "popup"
-command = "git log --graph --oneline --decorate --all --color=always | less -R"
-description = "git graph"
-width = "85%"
-height = "80%"
+command = "lazygit"
+description = "lazygit"
+width = "90%"
+height = "90%"
 
 # --- Worktrees ---------------------------------------------------------------
 [worktrees]
@@ -205,11 +206,16 @@ rows = [
   ["branch", "git_status"],
 ]
 
-# In-app toasts when a background agent finishes or needs input. "herdr" rather
-# than "system"/"terminal" because this runs over SSH on a headless Coder box,
-# where there is no desktop notification service to talk to.
+# Toasts when a background agent finishes or needs input. "terminal" asks the
+# *outer* terminal to raise a desktop notification — and in the thin-client
+# setup that terminal is Ghostty on the Mac (the Herdr client renders toasts
+# locally even though the server/agents live on the headless Coder box). So a
+# blocked agent pops a real macOS notification, not just an in-app toast.
+# ("system" would target a notification daemon on the headless box; there isn't
+# one. Switch back to "herdr" for in-app-only toasts.)
+# Note: macOS must allow Ghostty to notify (System Settings > Notifications).
 [ui.toast]
-delivery = "herdr"
+delivery = "terminal"
 delay_seconds = 1
 
 [ui.toast.herdr]
