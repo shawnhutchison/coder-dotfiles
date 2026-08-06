@@ -154,6 +154,17 @@ description = "lazygit"
 width = "90%"
 height = "90%"
 
+# reviewr — toggle the code-review pane (github.com/persiyanov/herdr-reviewr).
+# type = "shell" runs the invoke detached, so it opens/closes reviewr's own split
+# in place rather than spawning a throwaway pane or popup. Lives on prefix+alt+r
+# (matching the claude/glow/lazygit chords) because prefix+shift+r — the intuitive
+# "Ctrl-Space R" — is already reload_config.
+[[keys.command]]
+key = "prefix+alt+r"
+type = "shell"
+command = "herdr plugin action invoke toggle --plugin persiyanov.reviewr"
+description = "toggle reviewr"
+
 # --- Worktrees ---------------------------------------------------------------
 [worktrees]
 directory = "~/.herdr/worktrees"

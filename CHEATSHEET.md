@@ -127,6 +127,7 @@ the same repo open side by side without stashing.
 | `Ctrl-Space Shift-R` | reload config after editing it |
 | `Ctrl-Space Alt-g` | **lazygit** in a popup (stage, branch, diff, log) |
 | `Ctrl-Space Alt-m` | browse markdown with **glow** in a popup |
+| `Ctrl-Space Alt-r` | toggle the **reviewr** code-review pane |
 
 ### Scrolling & copy mode
 - Mouse wheel just scrolls. Drag-select auto-copies.
@@ -191,6 +192,7 @@ copies. On your Mac:
 
 ```sh
 brew install herdr fzf jq neovim glow lazygit
+brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 
 mkdir -p ~/.config/herdr

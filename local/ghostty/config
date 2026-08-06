@@ -57,9 +57,10 @@ scrollback-limit = 10000000
 clipboard-write = allow
 
 # --- Font ------------------------------------------------------------------
-# No Nerd Font is installed on this machine, so the default is left in place.
-# Until one is installed, neo-tree/lualine icons render as boxes. To fix:
+# JetBrains Mono Nerd Font supplies the glyphs neo-tree/lualine (and any icons the
+# remote nvim emits) draw with. Ghostty renders them locally, so installing the
+# font on the Mac is what fixes the "boxes" everywhere — the remote box needs no
+# font. Install it once:
 #   brew install --cask font-jetbrains-mono-nerd-font
-# then uncomment:
-# font-family = "JetBrainsMono Nerd Font"
+font-family = "JetBrainsMono Nerd Font"
 font-size = 13

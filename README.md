@@ -144,6 +144,7 @@ Then authenticate: `gh auth login`, and `claude` (prompts on first run).
 ### On your Mac
 ```sh
 brew install herdr fzf jq neovim glow lazygit
+brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 mkdir -p ~/.config/herdr
 cp ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
