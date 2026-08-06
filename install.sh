@@ -4,6 +4,11 @@ set -e
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 OS="$(uname -s)"
 
+# Surface prior ~/.local/bin installs to the `command -v` skip-guards below — the
+# install shell may not have it on PATH yet, which would otherwise re-download
+# tools that are already present.
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "=== Coder Dotfiles Installation ==="
 echo ""
 
@@ -39,13 +44,18 @@ if [ "$OS" = "Linux" ]; then
   fi
 
   if ! command -v fzf &> /dev/null; then
-    FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSLo /tmp/fzf.tar.gz \
-      "https://github.com/junegunn/fzf/releases/latest/download/fzf-${FZF_VERSION}-linux_amd64.tar.gz"
-    mkdir -p ~/.local/bin
-    tar -xzf /tmp/fzf.tar.gz -C ~/.local/bin fzf
-    rm /tmp/fzf.tar.gz
-    echo "  Installed fzf ${FZF_VERSION}"
+    # `|| true`: a bare `VAR=$(...)` that exits non-zero (grep no-match on an API
+    # rate-limit/error page) would trip `set -e` and abort the whole install.
+    FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
+    if [ -n "$FZF_VERSION" ] && curl -fsSLo /tmp/fzf.tar.gz \
+      "https://github.com/junegunn/fzf/releases/latest/download/fzf-${FZF_VERSION}-linux_amd64.tar.gz"; then
+      mkdir -p ~/.local/bin
+      tar -xzf /tmp/fzf.tar.gz -C ~/.local/bin fzf
+      rm /tmp/fzf.tar.gz
+      echo "  Installed fzf ${FZF_VERSION}"
+    else
+      echo "  Skipped fzf (download failed)"
+    fi
   fi
 
   # glow — renders markdown in the terminal. Agents produce a lot of .md
@@ -60,7 +70,7 @@ if [ "$OS" = "Linux" ]; then
     esac
 
     if [ -n "$GLOW_ARCH" ]; then
-      GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
       if [ -n "$GLOW_VERSION" ] && curl -fsSLo /tmp/glow.tar.gz \
         "https://github.com/charmbracelet/glow/releases/latest/download/glow_${GLOW_VERSION}_Linux_${GLOW_ARCH}.tar.gz"; then
         mkdir -p ~/.local/bin
@@ -87,9 +97,12 @@ if [ "$OS" = "Linux" ]; then
     esac
 
     if [ -n "$LG_ARCH" ]; then
-      LG_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      LG_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*' || true)
+      # Note lowercase `linux` — jesseduffield names assets `lazygit_<v>_linux_<arch>`,
+      # unlike charmbracelet's capital `Linux` for glow above. Case matters: GitHub
+      # release asset URLs are case-sensitive, so `Linux` here 404s every time.
       if [ -n "$LG_VERSION" ] && curl -fsSLo /tmp/lazygit.tar.gz \
-        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LG_VERSION}_Linux_${LG_ARCH}.tar.gz"; then
+        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LG_VERSION}_linux_${LG_ARCH}.tar.gz"; then
         mkdir -p ~/.local/bin
         # Archive has the binary at its root alongside LICENSE/README.
         tar -xzf /tmp/lazygit.tar.gz -C ~/.local/bin lazygit
@@ -180,7 +193,7 @@ fi
 echo ""
 echo "Installing Herdr plugins..."
 if command -v herdr &> /dev/null; then
-  if herdr plugin list 2>/dev/null | grep -q "persiyanov.reviewr"; then
+  if herdr plugin list 2>/dev/null | grep -q "reviewr"; then
     echo "  reviewr already installed"
   else
     herdr plugin install -y persiyanov/herdr-reviewr \
@@ -192,7 +205,9 @@ if command -v herdr &> /dev/null; then
   # the directory `herdr plugin config-dir` reports — resolved here rather than
   # hardcoded. We ship only `theme`: per the plugin's config spec a single bad
   # key invalidates the whole file and the pane then does no work.
-  REVIEWR_CFG_DIR="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null)"
+  # `|| true`: don't let a non-zero exit (e.g. plugin not installed) abort the
+  # whole install at this bare assignment under `set -e`.
+  REVIEWR_CFG_DIR="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null || true)"
   if [ -n "$REVIEWR_CFG_DIR" ]; then
     mkdir -p "$REVIEWR_CFG_DIR"
     cp "$DOTFILES_DIR/.config/herdr/plugins/persiyanov.reviewr.toml" \
