@@ -77,9 +77,35 @@ if [ "$OS" = "Linux" ]; then
     fi
   fi
 
+  # lazygit — full-screen git TUI, bound to a Herdr popup (prefix+alt+g). Same
+  # tarball-into-~/.local/bin pattern as fzf/glow.
+  if ! command -v lazygit &> /dev/null; then
+    case "$(uname -m)" in
+      x86_64|amd64)  LG_ARCH="x86_64" ;;
+      aarch64|arm64) LG_ARCH="arm64" ;;
+      *)             LG_ARCH="" ;;
+    esac
+
+    if [ -n "$LG_ARCH" ]; then
+      LG_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      if [ -n "$LG_VERSION" ] && curl -fsSLo /tmp/lazygit.tar.gz \
+        "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LG_VERSION}_Linux_${LG_ARCH}.tar.gz"; then
+        mkdir -p ~/.local/bin
+        # Archive has the binary at its root alongside LICENSE/README.
+        tar -xzf /tmp/lazygit.tar.gz -C ~/.local/bin lazygit
+        rm /tmp/lazygit.tar.gz
+        echo "  Installed lazygit ${LG_VERSION}"
+      else
+        echo "  Skipped lazygit (download failed)"
+      fi
+    else
+      echo "  Skipped lazygit (unsupported arch $(uname -m))"
+    fi
+  fi
+
 elif [ "$OS" = "Darwin" ]; then
   if command -v brew &> /dev/null; then
-    brew install ripgrep fd fzf jq neovim glow 2>/dev/null || true
+    brew install ripgrep fd fzf jq neovim glow lazygit 2>/dev/null || true
   else
     echo "  Homebrew not found — install from https://brew.sh"
   fi
