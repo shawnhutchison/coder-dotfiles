@@ -133,6 +133,17 @@ type = "pane"
 command = "claude"
 description = "Claude Code in a new pane"
 
+# Read markdown without disturbing the layout. `glow` with no argument opens a
+# browser over every .md file under the pane's directory, which is the common
+# case after an agent writes a batch of analyses. `q` closes it.
+[[keys.command]]
+key = "prefix+alt+m"
+type = "popup"
+command = "glow"
+description = "browse markdown"
+width = "88%"
+height = "88%"
+
 # Scratch git log without disturbing the layout.
 [[keys.command]]
 key = "prefix+alt+g"
@@ -172,9 +183,16 @@ rows = [
   ["agent", "state_text"],
 ]
 
+# `pane` comes first because it is the one label you control live: Ctrl-Space
+# Shift-P (rename_pane) prompts inside the interface and applies to the focused
+# pane. Without this token the name you type is stored but never displayed.
+#
+# Note `workspace` labels the *container* — every agent in one workspace shows
+# the same value, so it cannot distinguish two agents side by side. `pane` can.
 [ui.sidebar.agents.rows_by_agent]
 claude = [
-  ["state_icon", "workspace", "tab"],
+  ["state_icon", "pane"],
+  ["workspace", "tab"],
   ["terminal_title_stripped"],
   ["agent", "state_text"],
 ]
