@@ -113,7 +113,10 @@ previous_workspace = "prefix+shift+left"
 new_worktree = "prefix+shift+g"
 
 # Agents
-focus_agent    = "prefix+alt+1..9"
+# No direct-jump binding: herdr's prefix-wait treats the ESC byte that opens an
+# alt+N chord as "cancel prefix" over this remote setup (see plugin commands
+# below), and digits have no free Ctrl/Shift-only slot (prefix+1..9 is tabs,
+# prefix+shift+1..9 is workspaces). Cycle instead.
 next_agent     = "prefix+shift+j"
 previous_agent = "prefix+shift+k"
 
@@ -127,8 +130,19 @@ reload_config            = "prefix+shift+r"
 open_notification_target = "prefix+o"
 
 # Jump straight into a Claude Code pane.
+#
+# Was prefix+alt+c (and glow/lazygit/reviewr below were prefix+alt+m/g/r).
+# Over the Mac-to-Coder remote setup, herdr's prefix-wait reads the ESC byte
+# that starts an alt+<key> chord as "cancel prefix" before the following key
+# ever arrives — confirmed with `cat -v`: Option+letter reaches the remote pty
+# fine as raw bytes, but herdr's own binding matcher never sees the chord as a
+# whole, so the little prefix menu just closes. herdr's own config reference
+# (`herdr --default-config`) hints at this: "alt+..., cmd/super... may depend
+# on your terminal/tmux setup." No escape-timing or keyboard-protocol knob
+# exists to fix it cleanly, so these are rebound to plain/shift letters, which
+# match the form of prefix+shift+p etc. above that already work.
 [[keys.command]]
-key = "prefix+alt+c"
+key = "prefix+shift+c"
 type = "pane"
 command = "claude"
 description = "Claude Code in a new pane"
@@ -137,7 +151,7 @@ description = "Claude Code in a new pane"
 # browser over every .md file under the pane's directory, which is the common
 # case after an agent writes a batch of analyses. `q` closes it.
 [[keys.command]]
-key = "prefix+alt+m"
+key = "prefix+m"
 type = "popup"
 command = "glow"
 description = "browse markdown"
@@ -146,8 +160,9 @@ height = "88%"
 
 # lazygit — full-screen git TUI (stage, branch, diff, interactive log): a strict
 # superset of the static graph this key used to run. `q` closes the popup.
+# "l" for lazygit — plain g/shift+g are already goto/new_worktree.
 [[keys.command]]
-key = "prefix+alt+g"
+key = "prefix+shift+l"
 type = "popup"
 command = "lazygit"
 description = "lazygit"
@@ -156,11 +171,10 @@ height = "90%"
 
 # reviewr — toggle the code-review pane (github.com/persiyanov/herdr-reviewr).
 # type = "shell" runs the invoke detached, so it opens/closes reviewr's own split
-# in place rather than spawning a throwaway pane or popup. Lives on prefix+alt+r
-# (matching the claude/glow/lazygit chords) because prefix+shift+r — the intuitive
-# "Ctrl-Space R" — is already reload_config.
+# in place rather than spawning a throwaway pane or popup. "d" for diff review —
+# plain r/shift+r are already resize_mode/reload_config.
 [[keys.command]]
-key = "prefix+alt+r"
+key = "prefix+d"
 type = "shell"
 command = "herdr plugin action invoke toggle --plugin persiyanov.reviewr"
 description = "toggle reviewr"
