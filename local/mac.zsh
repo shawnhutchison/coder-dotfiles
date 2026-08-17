@@ -12,9 +12,12 @@
 #   brew install herdr fzf jq
 #   coder login && coder config-ssh
 #   mkdir -p ~/.config/herdr
-#   cp ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
+#   ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 #
-# That last copy is for the *theme* only — the client paints the chrome, so
+# A symlink, not a copy, so it can't drift from the repo — same as the Ghostty
+# config. Link only config.toml; ~/.config/herdr also holds client state.
+#
+# That link is for the *theme* only — the client paints the chrome, so
 # without it the UI is Catppuccin. Keybindings do NOT come from it: `dev`
 # attaches with --remote-keybindings server, so the box's config.toml owns
 # every key. See the comment on dev() below.

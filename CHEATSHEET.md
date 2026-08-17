@@ -209,7 +209,7 @@ brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 
 mkdir -p ~/.config/herdr
-cp .config/herdr/config.toml ~/.config/herdr/config.toml   # theme only; keys come from the box
+ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml  # theme; keys come from the box
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config  # Ghostty theme + clipboard-write
 
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
@@ -219,9 +219,14 @@ See the README's **Setup → On your Mac** for the canonical version of this. Th
 Ghostty symlink is what sets `clipboard-write = allow`, which the yank→Mac-clipboard
 path (§7) depends on — don't skip it.
 
-That config copy is for the theme: the client paints the chrome from the **local**
-config, so without it the UI is Catppuccin. Your prefix and every other binding come
-from the workspace, not from this copy.
+Both Mac-side configs are **symlinks into this repo**, not copies, so they can't go
+stale: edit the file here and the Mac picks it up. `mkdir -p ~/.config/herdr` still
+matters — that directory also holds the client's own state, so only `config.toml`
+itself is linked.
+
+What the Herdr link gives you is the theme: the client paints the chrome from the
+**local** config, so without it the UI is Catppuccin. Your prefix and every other
+binding come from the workspace, not from here.
 
 Don't run the full `install.sh` on your Mac — it installs Claude Code, copies Claude
 config, and wires the agent-state hook, none of which belong on a machine that isn't

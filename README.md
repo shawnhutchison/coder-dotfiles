@@ -149,11 +149,15 @@ brew install herdr fzf jq neovim glow lazygit
 brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 mkdir -p ~/.config/herdr
-cp ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
+ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
 ```
-The local Herdr config copy is for the **theme** — the client paints the chrome, so
+Both Mac-side configs are symlinks into this repo rather than copies, so neither can
+drift: edit the file here and the Mac has it. Only `config.toml` is linked, never the
+`~/.config/herdr` directory — that also holds the client's own state.
+
+The local Herdr config is for the **theme** — the client paints the chrome, so
 without it the UI is wrong. It is *not* where your keys come from: `dev` attaches with
 `--remote-keybindings server`, so `[keys]` and `[[keys.command]]` are read from the
 workspace's own `config.toml`, the one `install.sh` writes. That's what makes a key you
