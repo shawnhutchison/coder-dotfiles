@@ -246,20 +246,56 @@ require("lazy").setup({
   },
 
   -- Syntax highlighting / parsing ------------------------------------------
+  -- On the `main` branch. This used to pin `branch = "master"` for the classic
+  -- `nvim-treesitter.configs` API, but master is frozen upstream and on Neovim
+  -- 0.12 it throws inside the injection-query path on every file open:
+  --
+  --   vim.schedule callback: .../treesitter/languagetree.lua:215:
+  --   .../treesitter.lua:197: attempt to call method 'range' (a nil value)
+  --
+  -- Nothing in this repo changed to cause that — install.sh installs Neovim
+  -- from `releases/latest`, so the runtime moved out from under the pin. The
+  -- fix is to follow the plugin forward rather than freeze the runtime, since
+  -- `main` tracks Neovim's leading edge (it requires 0.12+).
+  --
+  -- `main` has no module system, so this looks different from the old block:
+  -- no `highlight`/`indent` tables, no `ensure_installed`, no `auto_install`.
+  -- Parsers are installed explicitly and highlighting is Neovim's own
+  -- `vim.treesitter.start()`. It builds parsers with the tree-sitter CLI
+  -- (>= 0.26.1) and a C compiler — install.sh puts both on PATH.
   {
     "nvim-treesitter/nvim-treesitter",
-    branch = "master", -- classic .configs API; the new `main` branch dropped it
+    branch = "main",
+    lazy = false,      -- the FileType autocmd below has to be registered before
+                       -- the first buffer loads, or that buffer gets no parser
     build = ":TSUpdate",
     config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = {
+      require("nvim-treesitter").setup({})
+
+      -- `main` dropped auto_install: a language missing from this list gets no
+      -- treesitter highlighting at all, ever. Add languages here rather than
+      -- expecting them on demand. install() is async and skips parsers that are
+      -- already present, so it costs nothing on later starts.
+      pcall(function()
+        require("nvim-treesitter").install({
           "bash", "lua", "vim", "vimdoc", "json", "yaml", "toml",
           "markdown", "markdown_inline", "python", "javascript",
           "typescript", "tsx", "go", "rust", "html", "css",
-        },
-        auto_install = true,
-        highlight = { enable = true },
-        indent = { enable = true },
+        })
+      end)
+
+      -- Highlighting is per-buffer opt-in now. pcall'd because a filetype whose
+      -- parser isn't installed (or hasn't finished installing) would otherwise
+      -- raise on every file open — the exact failure this migration is fixing.
+      -- The treesitter indentexpr is only wired where a parser actually started;
+      -- `smartindent` (set at the top of this file) covers everything else.
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("treesitter_start", { clear = true }),
+        callback = function(ev)
+          if pcall(vim.treesitter.start, ev.buf) then
+            vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
       })
     end,
   },
