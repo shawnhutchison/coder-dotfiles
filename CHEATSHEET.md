@@ -111,9 +111,8 @@ the same repo open side by side without stashing.
 ### Agents
 | Keys | Does |
 |---|---|
-| `Ctrl-Space Alt-1` … `9` | jump straight to agent N |
-| `Ctrl-Space Shift-J` / `Shift-K` | next / previous agent |
-| `Ctrl-Space Alt-c` | Claude Code in a new pane |
+| `Ctrl-Space Shift-J` / `Shift-K` | next / previous agent (no direct-jump binding — see below) |
+| `Ctrl-Space Shift-C` | Claude Code in a new pane |
 | `Ctrl-Space o` | jump to whatever just notified you |
 
 ### Session & UI
@@ -125,9 +124,14 @@ the same repo open side by side without stashing.
 | `Ctrl-Space g` | navigate mode — then `h/j/k/l` panes, `↑`/`↓` workspaces |
 | `Ctrl-Space s` | settings UI |
 | `Ctrl-Space Shift-R` | reload config after editing it |
-| `Ctrl-Space Alt-g` | **lazygit** in a popup (stage, branch, diff, log) |
-| `Ctrl-Space Alt-m` | browse markdown with **glow** in a popup |
-| `Ctrl-Space Alt-r` | toggle the **reviewr** code-review pane |
+| `Ctrl-Space Shift-L` | **lazygit** in a popup (stage, branch, diff, log) |
+| `Ctrl-Space m` | browse markdown with **glow** in a popup |
+| `Ctrl-Space d` | toggle the **reviewr** code-review pane (from a pane inside a git repo) |
+
+No binding uses `Alt-<key>` after the prefix: herdr's prefix-wait reads the ESC byte
+that opens an `alt+` chord as "cancel prefix" over this remote setup, so those chords
+were rebound to plain and Shift letters. `Ctrl-Alt-<key>` bindings (no prefix) are
+unaffected.
 
 ### Scrolling & copy mode
 - Mouse wheel just scrolls. Drag-select auto-copies.
@@ -180,7 +184,16 @@ restart recovery (§4) is unaffected. What you gain by running the client locall
   on yank (see §7), so `yy` on the remote box is pasteable with `Cmd-V` on the Mac.
 - **Local notifications.** A blocked agent raises a **macOS notification** via Ghostty,
   not just an in-app toast — the client rendering the toast is the one on your Mac.
-- **Local keybindings.** Your `Ctrl-Space` prefix comes from your Mac's config.
+- **Local theme.** The client paints the UI, so `[theme.custom]` is read from the Mac's
+  `~/.config/herdr/config.toml`.
+
+Keybindings are the one thing deliberately kept **remote**. `dev` attaches with
+`--remote-keybindings server`; the flag defaults to `local`, and on that default the
+client matches keys against the Mac's config and ignores the box's entirely — so a key
+added to this repo, or a plugin action bound after `herdr plugin install`, did nothing
+until it was hand-copied to the Mac. With `server`, `.config/herdr/config.toml` on the
+workspace is the only place keys are defined, `hreload` applies a change live, and a
+fresh Coder workspace is correct the moment `install.sh` finishes.
 
 Herdr installs itself on the host on first connect, and `install.sh` puts it there
 too.
@@ -196,7 +209,7 @@ brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 
 mkdir -p ~/.config/herdr
-cp .config/herdr/config.toml ~/.config/herdr/config.toml   # local client reads this
+cp .config/herdr/config.toml ~/.config/herdr/config.toml   # theme only; keys come from the box
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config  # Ghostty theme + clipboard-write
 
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
@@ -206,8 +219,9 @@ See the README's **Setup → On your Mac** for the canonical version of this. Th
 Ghostty symlink is what sets `clipboard-write = allow`, which the yank→Mac-clipboard
 path (§7) depends on — don't skip it.
 
-That config copy matters: the local client reads the **local** config, so without it
-your prefix is `ctrl+b` and the theme is Catppuccin.
+That config copy is for the theme: the client paints the chrome from the **local**
+config, so without it the UI is Catppuccin. Your prefix and every other binding come
+from the workspace, not from this copy.
 
 Don't run the full `install.sh` on your Mac — it installs Claude Code, copies Claude
 config, and wires the agent-state hook, none of which belong on a machine that isn't
@@ -477,10 +491,25 @@ mouse habit for a keystroke and it compounds fast.
 - **A keybinding does nothing?** Herdr disables invalid bindings rather than failing
   to start, and logs why. Check:
   ```sh
+  herdr config check
   grep -i 'invalid keybinding' ~/.config/herdr/herdr-server.log
   ```
   Note that unknown *config keys* are silently ignored, so check spelling against
   `herdr --default-config`, which prints the full annotated reference.
+- **Every binding does nothing — the whole `[keys]` block looks ignored?** You attached
+  without `--remote-keybindings server`, so the client is matching against the Mac's
+  `config.toml` and the box's is unused for input. `herdr config check` on the box will
+  still say `ok`, because the file is fine — it's just not the file being read. Detach and
+  reattach with `dev`, which passes the flag.
+- **A plugin action does nothing when you invoke it?** `herdr plugin action invoke`
+  reports `status: running` and exits 0 even when the action then fails. The stderr is in
+  the plugin log, not the invoke output:
+  ```sh
+  herdr plugin log
+  ```
+  For **reviewr** specifically, the usual answer is cwd: it refuses with
+  `not a git repo: '<dir>'` unless the focused pane is inside a git worktree, so
+  `prefix+d` from `~` does nothing. Press it from a pane inside the repo.
 - **Agent shows `unknown`?** The integration hook is missing. Re-run:
   ```sh
   herdr integration install claude

@@ -14,15 +14,18 @@
 #   mkdir -p ~/.config/herdr
 #   cp ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 #
-# That last copy matters: the local Herdr client reads the *local* config, so
-# without it your prefix is ctrl+b and the theme is Catppuccin.
+# That last copy is for the *theme* only — the client paints the chrome, so
+# without it the UI is Catppuccin. Keybindings do NOT come from it: `dev`
+# attaches with --remote-keybindings server, so the box's config.toml owns
+# every key. See the comment on dev() below.
 # ============================================================================
 
 # --- Coder workspaces + Herdr remote attach ---------------------------------
 # Herdr splits into a client (the UI) and a server (the panes, agents, layout).
 # `herdr --remote <host>` runs the client here and the server on the Coder
 # workspace: agents and ~/.config/herdr/session.json stay on the box that has
-# the code, while your clipboard and keybindings stay local.
+# the code, while your clipboard and notifications stay local. Keybindings are
+# deliberately *not* local — see dev().
 #
 # Depends on `coder config-ssh` having written the `Host coder.*` block into
 # ~/.ssh/config — already true if `ssh coder.<workspace>` works. That block's
@@ -67,6 +70,16 @@ _coder_ws_pick() {
 # becomes a Herdr session: client here, server (and agents) on that box.
 #   dev              pick from a list
 #   dev <name>       skip the picker and go straight there
+#
+# --remote-keybindings server is the important flag. It defaults to `local`,
+# which means the client matches keys against the *Mac's* config.toml and the
+# one install.sh writes on the box is ignored for input entirely — so binding a
+# key or a newly installed plugin action in this repo's config.toml had no
+# effect until you also hand-copied it here. Pointing key resolution at the
+# server makes .config/herdr/config.toml the single source of truth: every new
+# Coder workspace gets it from install.sh, and a change goes live with
+# `herdr server reload-config` (alias `hreload`, or prefix+shift+r) without
+# reattaching. The Mac keeps clipboard, notifications, and the theme.
 dev() {
   # Nesting is blocked by default, so fail with a useful message rather than
   # letting herdr refuse after the ssh handshake.
@@ -80,7 +93,7 @@ dev() {
     ws=$(_coder_ws_pick) || return 1
     [ -z "$ws" ] && return 0
   fi
-  herdr --remote "coder.$ws"
+  herdr --remote "coder.$ws" --remote-keybindings server
 }
 
 # dev-ssh — same picker, but a plain SSH shell instead of Herdr.
