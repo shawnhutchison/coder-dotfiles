@@ -43,6 +43,38 @@ if [ "$OS" = "Linux" ]; then
     echo "  Neovim already installed"
   fi
 
+  # tree-sitter CLI — nvim-treesitter's `main` branch builds parsers with it
+  # (>= 0.26.1; upstream is explicit that it must be a package-manager build,
+  # not npm). Without it `require('nvim-treesitter').install()` produces no
+  # parsers and you silently lose all syntax highlighting, so this is a real
+  # dependency of .config/nvim/init.lua, not a nicety. The C compiler it shells
+  # out to comes from build-essential above. Same release-binary-into-
+  # ~/.local/bin pattern as fzf/glow/lazygit, except the asset is a bare
+  # gzipped binary rather than a tarball.
+  if ! command -v tree-sitter &> /dev/null; then
+    case "$(uname -m)" in
+      x86_64|amd64)  TS_ARCH="x64" ;;
+      aarch64|arm64) TS_ARCH="arm64" ;;
+      *)             TS_ARCH="" ;;
+    esac
+
+    if [ -n "$TS_ARCH" ]; then
+      if curl -fsSLo /tmp/tree-sitter.gz \
+        "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${TS_ARCH}.gz"; then
+        mkdir -p ~/.local/bin
+        gunzip -c /tmp/tree-sitter.gz > ~/.local/bin/tree-sitter
+        chmod +x ~/.local/bin/tree-sitter
+        rm /tmp/tree-sitter.gz
+        echo "  Installed tree-sitter CLI"
+      else
+        echo "  Skipped tree-sitter CLI (download failed) — nvim will have no"
+        echo "  treesitter highlighting until it is installed"
+      fi
+    else
+      echo "  Skipped tree-sitter CLI (unsupported arch $(uname -m))"
+    fi
+  fi
+
   if ! command -v fzf &> /dev/null; then
     # `|| true`: a bare `VAR=$(...)` that exits non-zero (grep no-match on an API
     # rate-limit/error page) would trip `set -e` and abort the whole install.
@@ -227,11 +259,29 @@ cp "$DOTFILES_DIR/.config/nvim/init.lua" "$HOME/.config/nvim/init.lua"
 # Must block on `wait = true` -- the `+Lazy! sync` command form kicks off
 # clone/checkout/build as async jobs and returns immediately, so a bare `+qa`
 # can quit before a plugin's branch checkout finishes, leaving it cloned but
-# stuck on the wrong branch (e.g. nvim-treesitter's default `main`, which
-# lacks the classic `.configs` API this config relies on).
+# stuck on whatever branch it landed on. Several specs in init.lua pin one
+# (nvim-treesitter `main`, neo-tree `v3.x`), and a half-applied checkout there
+# means a plugin whose API doesn't match the config that calls it.
+#
+# If the repo carries a lockfile, install to those exact revisions instead of
+# syncing to whatever is newest. That is the one lever that prevents a repeat of
+# the nvim-treesitter break: upstream moving no longer changes your box until you
+# deliberately refresh the lockfile. To refresh it: `:Lazy update` on the box,
+# then copy ~/.config/nvim/lazy-lock.json into this repo and commit it.
+# `sync` would rewrite the lockfile it just read, so the locked path uses
+# install + restore instead.
+if [ -f "$DOTFILES_DIR/.config/nvim/lazy-lock.json" ]; then
+  cp "$DOTFILES_DIR/.config/nvim/lazy-lock.json" "$HOME/.config/nvim/lazy-lock.json"
+  NVIM_LAZY_CMD="require('lazy').install({ wait = true, show = false }); require('lazy').restore({ wait = true, show = false })"
+  NVIM_LAZY_DESC="plugins pinned to lazy-lock.json"
+else
+  NVIM_LAZY_CMD="require('lazy').sync({ wait = true, show = false })"
+  NVIM_LAZY_DESC="plugins synced (no lockfile — versions will drift)"
+fi
+
 if command -v nvim &> /dev/null; then
-  nvim --headless -c "lua require('lazy').sync({ wait = true, show = false })" -c "qa" 2>/dev/null || true
-  echo "  Neovim configured (plugins synced)"
+  nvim --headless -c "lua $NVIM_LAZY_CMD" -c "qa" 2>/dev/null || true
+  echo "  Neovim configured ($NVIM_LAZY_DESC)"
 else
   echo "  Neovim config copied (plugins will install on first launch)"
 fi
