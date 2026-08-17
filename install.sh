@@ -260,11 +260,29 @@ fi
 echo ""
 echo "Setting up zsh..."
 touch "$HOME/.zshrc"
-if ! grep -q "coder-dotfiles/.zshrc" "$HOME/.zshrc" 2>/dev/null; then
+# Match the line this script actually writes, not the repo's name. Coder clones
+# the dotfiles to ~/.config/coderv2/dotfiles, so a guard looking for
+# "coder-dotfiles/.zshrc" never matched under Coder's own dotfiles mechanism and
+# every re-provision appended another copy — one box had accumulated 14, each one
+# re-sourcing this repo's .zshrc on every shell start. -F because $DOTFILES_DIR
+# is a path full of dots.
+if ! grep -qF "source $DOTFILES_DIR/.zshrc" "$HOME/.zshrc" 2>/dev/null; then
   echo "source $DOTFILES_DIR/.zshrc" >> "$HOME/.zshrc"
   echo "  Added source line to ~/.zshrc"
 else
   echo "  ~/.zshrc already sources dotfiles"
+fi
+
+# Self-heal a box provisioned before the guard above was fixed: collapse repeats
+# of that one exact line, keeping the first. Touches nothing else in ~/.zshrc,
+# and leaves a .bak beside it.
+ZSHRC_DUPES=$(grep -cxF "source $DOTFILES_DIR/.zshrc" "$HOME/.zshrc" 2>/dev/null) || ZSHRC_DUPES=0
+if [ "$ZSHRC_DUPES" -gt 1 ]; then
+  cp "$HOME/.zshrc" "$HOME/.zshrc.bak"
+  awk -v line="source $DOTFILES_DIR/.zshrc" \
+    '$0 == line { if (seen++) next } { print }' \
+    "$HOME/.zshrc.bak" > "$HOME/.zshrc"
+  echo "  Removed $((ZSHRC_DUPES - 1)) duplicate source line(s) (backup: ~/.zshrc.bak)"
 fi
 
 if [ "$OS" = "Linux" ] && [ "$SHELL" != "$(which zsh)" ]; then
