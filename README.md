@@ -106,14 +106,21 @@ safe to re-run — and ordered deliberately:
 2. **Herdr** — install if missing, else `herdr update` in place (keeps the box current and
    clears reviewr's version gate).
 3. **Claude Code CLI** + config (`settings.json`, `CLAUDE.md`, `statusline.sh`).
-4. **Herdr ↔ Claude hook** — `herdr integration install claude`, so the sidebar shows each
+4. **Claude Code output style** — symlinks `intuitive.md` into `~/.claude/output-styles/`
+   and `jq`-merges `"outputStyle": "intuitive"` into `~/.claude/settings.json`. The merge
+   matters: step 3 skips `settings.json` when the box already has one, so a plain copy
+   would never activate the style on a re-provision. Caveat: picking a style from
+   `/config` writes `outputStyle` to the *project* `.claude/settings.local.json`, which
+   outranks `~/.claude/settings.json` — so in any ticket repo where that picker was used,
+   this default loses silently. Delete the key from that repo to fall back to `intuitive`.
+5. **Herdr ↔ Claude hook** — `herdr integration install claude`, so the sidebar shows each
    agent's live state and panes reattach to their conversation after a restart. Runs
    *after* the Claude config copy so it isn't clobbered.
-5. **Herdr plugins** — install + theme reviewr.
-6. **Neovim config** + a headless `Lazy sync` so the first launch is instant.
-7. **Herdr config** — copies `config.toml` only, never the directory (that would wipe
+6. **Herdr plugins** — install + theme reviewr.
+7. **Neovim config** + a headless `Lazy sync` so the first launch is instant.
+8. **Herdr config** — copies `config.toml` only, never the directory (that would wipe
    `session.json` / scrollback), then reloads a running server.
-8. **zsh / git** — sources this repo's `.zshrc`, sets zsh as the shell, adds git aliases.
+9. **zsh / git** — sources this repo's `.zshrc`, sets zsh as the shell, adds git aliases.
 
 State it must never destroy: `~/.config/herdr/session.json` and `session-history.json`
 (workspaces, layout, scrollback). The copy step touches only `config.toml`.
@@ -181,6 +188,7 @@ install.sh                    provisioning for the Coder box (idempotent)
 .config/herdr/config.toml     Herdr: theme, keys, sidebar, persistence
 .config/herdr/plugins/        reviewr plugin config (copied to herdr's plugin config dir)
 .claude/                      Claude Code: settings, CLAUDE.md, statusline, commands
+.claude/output-styles/        `intuitive` output style — symlinked into ~/.claude/
 local/ghostty/config          Ghostty (Mac only) — symlinked into ~/.config/ghostty
 local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` (Mac only)
 CHEATSHEET.md                 day-to-day keys and workflow
