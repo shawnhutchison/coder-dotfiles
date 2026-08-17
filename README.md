@@ -27,7 +27,9 @@ There are two machines, and the repo has a half for each.
 
 - **`herdr --remote coder.<ws>`** (wrapped by the `dev` command) runs the *client* on
   the Mac and the *server* on the Coder box. Agents, panes, and layout live on the box
-  that has the code; your clipboard, keybindings, and notifications stay local.
+  that has the code; your clipboard, notifications, and the theme stay local. `dev` passes
+  `--remote-keybindings server`, so **keys come from the box** — this repo's
+  `.config/herdr/config.toml` is the single source of truth for them.
 - Everything at the repo root and under `.config/` / `.claude/` is the **payload**
   Coder drops into a workspace. `install.sh` sets it up there.
 - Everything under **`local/`** runs on the Mac only. `install.sh` never copies it.
@@ -147,13 +149,24 @@ brew install herdr fzf jq neovim glow lazygit
 brew install --cask font-jetbrains-mono-nerd-font   # Nerd Font for nvim icons
 coder login && coder config-ssh
 mkdir -p ~/.config/herdr
-cp ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
+ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
 ```
-The local Herdr config copy matters: the client reads the *local* config, so without it
-your prefix is `Ctrl-b` and the theme is wrong. Keep local and remote Herdr versions in
-step (`dev-version <ws>`); a mismatched client replaces the remote binary on attach.
+Both Mac-side configs are symlinks into this repo rather than copies, so neither can
+drift: edit the file here and the Mac has it. Only `config.toml` is linked, never the
+`~/.config/herdr` directory — that also holds the client's own state.
+
+The local Herdr config is for the **theme** — the client paints the chrome, so
+without it the UI is wrong. It is *not* where your keys come from: `dev` attaches with
+`--remote-keybindings server`, so `[keys]` and `[[keys.command]]` are read from the
+workspace's own `config.toml`, the one `install.sh` writes. That's what makes a key you
+add here — or a plugin action you bind after `herdr plugin install` — work on every new
+workspace without touching the Mac. Apply a change with `hreload` (or `prefix+shift+r`);
+no reattach needed.
+
+Keep local and remote Herdr versions in step (`dev-version <ws>`); a mismatched client
+replaces the remote binary on attach.
 
 Then: `dev` (pick a workspace and attach) or `dev-ssh` (plain shell).
 
