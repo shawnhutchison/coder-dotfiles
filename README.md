@@ -150,6 +150,16 @@ git clone <this-repo> ~/dev/coder-dotfiles
 ```
 Then authenticate: `gh auth login`, and `claude` (prompts on first run).
 
+The install trusts github.com's SSH host keys and installs `typescript-language-server`,
+so the only manual step left is adding the Claude Code plugins — the marketplace is
+private, so it needs your auth:
+```sh
+/plugin marketplace add RoadRunnerEngineering/rr-skills
+/plugin install typescript-lsp@roadrunner-agent-skills
+/plugin install ruby-lsp@roadrunner-agent-skills
+/reload-plugins
+```
+
 ### On your Mac
 ```sh
 brew install herdr fzf jq neovim glow lazygit
