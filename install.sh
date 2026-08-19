@@ -351,6 +351,12 @@ fi
 # PATH from .zshrc and survives that.
 echo ""
 echo "Installing language servers..."
+# Node reaches PATH on the box through asdf's shims, and the init line that adds
+# them lives in an interactive shell's rc — which Coder's dotfiles runner is not.
+# Without this the `command -v npm` guard below skips on exactly the fresh-box
+# case this block exists for. Harmless when asdf is absent.
+[ -d "$HOME/.asdf/shims" ] && export PATH="$HOME/.asdf/shims:$PATH"
+
 TS_LS="$HOME/.npm-global/bin/typescript-language-server"
 if ! command -v npm &> /dev/null; then
   echo "  Skipped — no npm on PATH (this repo installs no node runtime)"
