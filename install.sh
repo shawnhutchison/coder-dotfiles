@@ -156,6 +156,57 @@ elif [ "$OS" = "Darwin" ]; then
   fi
 fi
 
+# --- SSH host trust for github.com ---
+# A fresh Coder box has no ~/.ssh at all. Coder injects the git identity through
+# GIT_SSH_COMMAND=/tmp/coder.XXXXXX/coder gitssh --, and that wrapper handles
+# *authentication* only — it never establishes host trust. So the first
+# `git clone git@github.com:...` aborts with "Host key verification failed",
+# which is what breaks `claude plugin marketplace add` on a new workspace.
+# HTTPS is not a workaround: private repos need credentials git has no helper for.
+#
+# The keys come from GitHub's meta API, so the trust anchor is CA verification of
+# api.github.com. Deliberately no fingerprint pinning: it would add nothing on
+# top of TLS and would hard-fail whenever GitHub rotates a key, as it did to the
+# RSA key in March 2023. Runs on both platforms — the guard below makes it a
+# no-op on a Mac that already trusts github.com.
+echo ""
+echo "Trusting github.com SSH host keys..."
+if command -v curl &> /dev/null && command -v jq &> /dev/null \
+  && command -v ssh-keygen &> /dev/null; then
+  # `ssh-keygen -F` exits non-zero when the host is absent — the normal case on a
+  # fresh box — so it must be tested, never left bare under `set -e`. `-f` is not
+  # optional: with no explicit file ssh-keygen resolves ~ from the passwd entry
+  # rather than $HOME, so the check could read a different file than the append
+  # below writes, and every re-run would add another copy of the keys.
+  if ssh-keygen -F github.com -f "$HOME/.ssh/known_hosts" > /dev/null 2>&1; then
+    echo "  github.com already trusted"
+  elif ! curl -fsS https://api.github.com/meta -o /tmp/gh_meta.json; then
+    echo "  Skipped — could not reach api.github.com; SSH clones will fail until"
+    echo "  ssh-keyscan github.com >> ~/.ssh/known_hosts is run by hand"
+  else
+    # Keep only lines that actually look like an SSH public key. Without this, a
+    # rate-limit or error payload would land in known_hosts as garbage.
+    jq -r '.ssh_keys[]?' /tmp/gh_meta.json 2>/dev/null \
+      | grep -E '^(ssh-|ecdsa-)' \
+      | sed 's/^/github.com /' > /tmp/gh_keys || true
+    rm -f /tmp/gh_meta.json
+
+    if [ -s /tmp/gh_keys ]; then
+      mkdir -p "$HOME/.ssh"
+      chmod 700 "$HOME/.ssh"
+      # Append, never truncate: known_hosts may already hold other hosts.
+      cat /tmp/gh_keys >> "$HOME/.ssh/known_hosts"
+      chmod 600 "$HOME/.ssh/known_hosts"
+      echo "  Added $(grep -c . /tmp/gh_keys) github.com host key(s)"
+    else
+      echo "  Skipped — api.github.com returned no usable host keys"
+    fi
+    rm -f /tmp/gh_keys
+  fi
+else
+  echo "  Skipped — curl, jq or ssh-keygen missing"
+fi
+
 # --- Herdr ---
 # Terminal workspace manager (replaces tmux). Unlike tmux, Herdr persists its
 # session layout to ~/.config/herdr/session.json and restores it when the server
@@ -279,6 +330,39 @@ if command -v herdr &> /dev/null; then
   fi
 else
   echo "  Skipped Herdr plugins — herdr not on PATH"
+fi
+
+# --- Language servers for Claude Code's LSP plugins ---
+# Every LSP plugin in the roadrunner-agent-skills marketplace (typescript-lsp,
+# pyright-lsp, terraform-lsp, ...) only *declares* a command to spawn; none of
+# them install a binary. So `/plugin install typescript-lsp` reports success and
+# then every LSP call on a .ts/.tsx file fails with
+#   Executable not found in $PATH: "typescript-language-server"
+# `typescript` ships alongside because the server needs a tsc to load. A
+# project's own node_modules/typescript still wins for files inside that project,
+# so this copy only serves files outside one.
+#
+# ruby-lsp needs nothing here: it arrives as a gem in the workspace image's asdf
+# ruby, already shimmed at ~/.asdf/shims/ruby-lsp.
+#
+# --prefix is the point of this block, not a detail. A plain `npm i -g` lands in
+# whichever nodejs asdf currently pins, so the binary vanishes from PATH the
+# moment a project's .tool-versions moves the version. ~/.npm-global/bin is on
+# PATH from .zshrc and survives that.
+echo ""
+echo "Installing language servers..."
+TS_LS="$HOME/.npm-global/bin/typescript-language-server"
+if ! command -v npm &> /dev/null; then
+  echo "  Skipped — no npm on PATH (this repo installs no node runtime)"
+elif [ -x "$TS_LS" ]; then
+  echo "  typescript-language-server already installed ($("$TS_LS" --version 2>/dev/null || echo unknown))"
+elif npm install -g --prefix "$HOME/.npm-global" \
+  --no-audit --no-fund --fetch-retries=2 --fetch-retry-maxtimeout=20000 \
+  typescript-language-server typescript > /dev/null 2>&1; then
+  export PATH="$HOME/.npm-global/bin:$PATH"
+  echo "  Installed typescript-language-server $("$TS_LS" --version 2>/dev/null || echo unknown)"
+else
+  echo "  Skipped typescript-language-server (npm install failed)"
 fi
 
 # --- Neovim config ---
@@ -405,6 +489,12 @@ echo ""
 echo "Auth still needed:"
 echo "  gh auth login     # GitHub CLI"
 echo "  claude            # Claude Code (prompts on first run)"
+echo ""
+echo "Then install the Claude Code plugins (inside claude, or as 'claude plugin ...'):"
+echo "  /plugin marketplace add RoadRunnerEngineering/rr-skills"
+echo "  /plugin install typescript-lsp@roadrunner-agent-skills"
+echo "  /plugin install ruby-lsp@roadrunner-agent-skills"
+echo "  /reload-plugins"
 echo ""
 echo "Then start your workspace:"
 echo "  herdr             # starts the server and restores your last layout"

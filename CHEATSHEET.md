@@ -456,6 +456,27 @@ up the Claude side in one keystroke.
 Because it runs inside Herdr you can `Ctrl-Space q` to detach and a long task keeps
 running — and unlike tmux, it also survives the workspace restarting overnight.
 
+### LSP plugins (go-to-definition for the agent)
+
+`install.sh` does not install these — the marketplace is private, so it needs your
+GitHub auth. Run them once per workspace, in this order:
+
+```sh
+/plugin marketplace add RoadRunnerEngineering/rr-skills
+/plugin install typescript-lsp@roadrunner-agent-skills
+/plugin install ruby-lsp@roadrunner-agent-skills
+/reload-plugins
+```
+
+A good reload reports `2 plugins · 0 skills · 6 agents · 0 hooks · 0 plugin MCP
+servers · 2 plugin LSP servers`.
+
+Each LSP plugin only names a command to spawn; it installs no binary. `install.sh`
+covers that gap for TypeScript (`typescript-language-server` into
+`~/.npm-global/bin`). `ruby-lsp` needs nothing — it comes as a gem in the workspace
+image's asdf ruby. Any *other* LSP plugin (pyright, terraform, rust-analyzer) will
+fail the same way until you install its server yourself.
+
 ---
 
 ## 9. Going mouseless
@@ -476,6 +497,29 @@ mouse habit for a keystroke and it compounds fast.
 ## 10. First-run notes & troubleshooting
 
 - **Auth:** run `gh auth login` (GitHub) and `claude` (prompts on first launch).
+- **`Host key verification failed` on any SSH git clone?** `~/.ssh/known_hosts` has no
+  github.com entry. Coder's `GIT_SSH_COMMAND=... coder gitssh --` wrapper does auth
+  only, never host trust. `install.sh` seeds the keys from `api.github.com/meta`; if it
+  printed a skip line, re-run it, or by hand:
+  ```sh
+  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  curl -fsS https://api.github.com/meta | jq -r '.ssh_keys[]' \
+    | sed 's/^/github.com /' >> ~/.ssh/known_hosts
+  git ls-remote git@github.com:RoadRunnerEngineering/rr-skills.git HEAD   # expect a SHA
+  ```
+  Verify with plain `git`, which inherits `GIT_SSH_COMMAND` from the environment. Calling
+  `ssh -T git@github.com` or overriding that variable bypasses the Coder wrapper and
+  returns `Permission denied (publickey)` — a false negative, not an auth problem. Don't
+  switch the remote to HTTPS either: the repos are private and no git credential helper
+  is configured, so HTTPS cannot authenticate at all.
+- **`Executable not found in $PATH: "typescript-language-server"`?** The LSP plugin ships
+  no binary. `install.sh` installs it; to do it by hand:
+  ```sh
+  npm install -g --prefix ~/.npm-global typescript-language-server typescript
+  typescript-language-server --version
+  ```
+  The `--prefix` matters: a plain `npm i -g` lands inside whichever nodejs asdf pins, so
+  the binary disappears from `PATH` the moment a project's `.tool-versions` changes.
 - **Icons look like boxes?** The file-tree/statusline icons need a **Nerd Font**.
   In Ghostty, set one in your config, e.g. `font-family = "JetBrainsMono Nerd Font"`.
 - **Theming:** three surfaces are pinned to **Tokyo Night Night** (`#1a1b26`), the
