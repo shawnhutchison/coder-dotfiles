@@ -267,23 +267,65 @@ fi
 # Terminal workspace manager (replaces tmux). Unlike tmux, Herdr persists its
 # session layout to ~/.config/herdr/session.json and restores it when the server
 # next starts — which is what makes a nightly Coder shutdown survivable.
+#
+# Pinned to a version, deliberately. This used to run `herdr update` on every
+# provision; on 2026-08-24 that walked the box to 0.8.2, and 0.8.2 regressed the
+# shutdown path. It now reaps every pane before the server snapshots, so a
+# machine stop leaves zero live panes, Herdr reads that as "the user closed
+# everything", and *deletes* session.json rather than saving it. Same event, two
+# versions, from the box's own herdr-server.log:
+#
+#   0.8.0  19:46:50.397  server shutdown initiated
+#          19:46:50.546  session saved  workspaces=1
+#          19:46:50.546  pane session terminated pane=2      <- after the save
+#
+#   0.8.2  02:40:47.245  pane session terminated pane=3, pane=1
+#          02:40:47.245  server shutdown initiated           <- zero panes left
+#          02:40:47.320  session cleared
+#
+# The matching 0.8.2 changelog entry is #2612, "Server stop requests now bypass
+# pane and API traffic". Raise the pin once a release fixes this — and raise the
+# Mac's at the same time (see local/mac.zsh). `herdr --remote` resyncs the
+# server binary to the *client's* version on attach, so a one-sided pin is
+# undone the next time you run `dev`.
+#
+# `[update] version_check = false` in .config/herdr/config.toml is the other
+# half: without it Herdr's own half-hourly check walks the pin forward again.
+#
+# 0.8.0 also clears the reviewr plugin's gate — its manifest sets
+# min_herdr_version = 0.7.5.
+HERDR_VERSION="0.8.0"
+
 echo ""
-echo "Installing Herdr..."
-if ! command -v herdr &> /dev/null; then
-  # Official installer; drops the binary in ~/.local/bin (already on PATH).
-  curl -fsSL https://herdr.dev/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
-  echo "  Installed Herdr ($(herdr --version 2>/dev/null || echo unknown))"
+echo "Installing Herdr $HERDR_VERSION..."
+case "$(uname -m)" in
+  x86_64|amd64)  HERDR_ARCH="x86_64" ;;
+  aarch64|arm64) HERDR_ARCH="aarch64" ;;
+  *)             HERDR_ARCH="" ;;
+esac
+# This block is outside the Linux/Darwin split above, so name the platform
+# rather than hardcoding linux — the asset names are herdr-<os>-<arch>.
+[ "$OS" = "Darwin" ] && HERDR_OS="macos" || HERDR_OS="linux"
+mkdir -p "$HOME/.local/bin"
+
+if [ "$(herdr --version 2> /dev/null | awk '{print $2}')" = "$HERDR_VERSION" ]; then
+  echo "  Herdr already at $HERDR_VERSION"
+elif [ -z "$HERDR_ARCH" ]; then
+  echo "  Skipped — no Herdr release asset for $(uname -m)"
+elif curl -fsSLo "$HOME/.local/bin/herdr.new" \
+  "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-${HERDR_OS}-${HERDR_ARCH}"; then
+  # Staged beside the target and renamed, not downloaded over it: rename is
+  # atomic on the same filesystem and works even while a server holds the old
+  # binary open, which an in-place write would refuse with "Text file busy".
+  chmod +x "$HOME/.local/bin/herdr.new"
+  mv "$HOME/.local/bin/herdr.new" "$HOME/.local/bin/herdr"
+  hash -r 2> /dev/null || true
+  echo "  Installed Herdr $(herdr --version 2> /dev/null || echo unknown)"
 else
-  # Already present — upgrade in place so a re-provisioned box lands on the
-  # latest Herdr rather than drifting (see CHEATSHEET, "Keep the two Herdr
-  # versions in step"). This also clears the reviewr plugin's version gate: its
-  # manifest sets min_herdr_version = 0.7.5, so an older Herdr makes the review
-  # pane refuse to start. Non-fatal: a no-op or a network blip shouldn't abort
-  # the install under `set -e`.
-  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown)); updating..."
-  herdr update || true
-  echo "  Herdr now at $(herdr --version 2>/dev/null || echo unknown)"
+  rm -f "$HOME/.local/bin/herdr.new"
+  echo "  Skipped — could not download Herdr $HERDR_VERSION"
+  command -v herdr &> /dev/null \
+    && echo "  Leaving $(herdr --version 2> /dev/null || echo unknown) in place"
 fi
 
 
@@ -359,7 +401,8 @@ fi
 # reviewr (github.com/persiyanov/herdr-reviewr): a code-review sidebar for an
 # agent's diff — view changes, add line comments, send them back to the agent.
 # `herdr plugin install` fetches the prebuilt binary from the plugin's GitHub
-# release; no Rust toolchain needed. Requires Herdr >= 0.7.5 (the update above).
+# release; no Rust toolchain needed. Requires Herdr >= 0.7.5, which the pinned
+# HERDR_VERSION above satisfies — check it again if you ever lower the pin.
 echo ""
 echo "Installing Herdr plugins..."
 if command -v herdr &> /dev/null; then

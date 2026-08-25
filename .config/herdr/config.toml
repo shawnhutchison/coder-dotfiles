@@ -53,6 +53,15 @@ peach       = "#ff9e64"  # orange
 # Requires the hook from `herdr integration install claude` (install.sh does it).
 resume_agents_on_restore = true
 
+# --- Updates -----------------------------------------------------------------
+[update]
+# Off because install.sh pins the binary to a known-good release (0.8.2 deletes
+# session.json on a machine shutdown instead of saving it — the full log diff is
+# in the HERDR_VERSION comment in install.sh). Left on, this background check
+# runs every 30 minutes and walks the pin forward again. Turn it back on when
+# the pin is raised.
+version_check = false
+
 # --- Terminal ----------------------------------------------------------------
 [terminal]
 # Named explicitly rather than left empty (which would fall back to $SHELL, then

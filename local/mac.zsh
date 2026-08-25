@@ -14,6 +14,8 @@
 #   mkdir -p ~/.config/herdr
 #   ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 #
+# Then pin Herdr to the version install.sh pins on the box — see HERDR_PIN below.
+#
 # A symlink, not a copy, so it can't drift from the repo — same as the Ghostty
 # config. Link only config.toml; ~/.config/herdr also holds client state.
 #
@@ -114,7 +116,47 @@ dev-ssh() {
 # the same breath (aliases are expanded at parse time, functions are not).
 dev-ls() { _coder_ws_list; }
 
-# dev-version — compare local and remote Herdr versions.
+# --- Herdr version pin -------------------------------------------------------
+# Both machines must run the SAME Herdr. `herdr --remote` resyncs the server
+# binary on the box to the *client's* version on attach, so pinning install.sh
+# alone is undone the next time you run `dev`.
+#
+# The pin exists because 0.8.2 deletes the box's session.json on the nightly
+# Coder shutdown instead of saving it: you reattach to a blank single pane and
+# every Claude session is gone. install.sh's HERDR_VERSION comment has the log
+# diff. Keep this value equal to that one.
+HERDR_PIN="0.8.0"
+
+# dev-pin-herdr — install the pinned Herdr into ~/.local/bin, which sits ahead of
+# /opt/homebrew/bin on PATH and so shadows the brew build rather than fighting
+# it. `brew upgrade herdr` stays harmless and `rm ~/.local/bin/herdr` undoes
+# this. Pass a version to override the pin: dev-pin-herdr 0.8.3
+dev-pin-herdr() {
+  local version="${1:-$HERDR_PIN}" arch
+  case "$(uname -m)" in
+    arm64|aarch64) arch="aarch64" ;;
+    x86_64)        arch="x86_64" ;;
+    *) print -u2 "dev-pin-herdr: no Herdr asset for $(uname -m)"; return 1 ;;
+  esac
+
+  mkdir -p ~/.local/bin
+  if ! curl -fsSLo ~/.local/bin/herdr.new \
+    "https://github.com/herdrdev/herdr/releases/download/v${version}/herdr-macos-${arch}"; then
+    rm -f ~/.local/bin/herdr.new
+    print -u2 "dev-pin-herdr: download failed for v${version}"
+    return 1
+  fi
+
+  chmod +x ~/.local/bin/herdr.new
+  mv ~/.local/bin/herdr.new ~/.local/bin/herdr
+  # macOS quarantines anything curl'd from the internet; Gatekeeper kills the
+  # binary on first run until the attribute is gone.
+  xattr -d com.apple.quarantine ~/.local/bin/herdr 2>/dev/null || true
+  hash -r
+  print "herdr pinned to $(herdr --version)"
+}
+
+# dev-version — compare the pin against local and remote Herdr versions.
 #
 # Worth checking before you assume a session is safe. `herdr --remote` compares
 # its protocol version against the remote server's; on a mismatch it replaces the
@@ -127,6 +169,7 @@ dev-version() {
     ws=$(_coder_ws_pick) || return 1
     [ -z "$ws" ] && return 0
   fi
+  printf 'pin     herdr %s\n' "$HERDR_PIN"
   printf 'local   %s\n' "$(herdr --version 2>/dev/null || echo 'not installed')"
   printf 'remote  %s\n' "$(ssh "coder.$ws" '$HOME/.local/bin/herdr --version' 2>/dev/null \
     || echo 'not installed / not reachable')"
