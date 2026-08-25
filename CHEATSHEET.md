@@ -126,7 +126,6 @@ the same repo open side by side without stashing.
 | `Ctrl-Space Shift-R` | reload config after editing it |
 | `Ctrl-Space Shift-L` | **lazygit** in a popup (stage, branch, diff, log) |
 | `Ctrl-Space m` | browse markdown with **glow** in a popup |
-| `Ctrl-Space d` | toggle the **reviewr** code-review pane (from a pane inside a git repo) |
 
 No binding uses `Alt-<key>` after the prefix: herdr's prefix-wait reads the ESC byte
 that opens an `alt+` chord as "cancel prefix" over this remote setup, so those chords
@@ -603,9 +602,7 @@ mouse habit for a keystroke and it compounds fast.
   ```sh
   herdr plugin log
   ```
-  For **reviewr** specifically, the usual answer is cwd: it refuses with
-  `not a git repo: '<dir>'` unless the focused pane is inside a git worktree, so
-  `prefix+d` from `~` does nothing. Press it from a pane inside the repo.
+  This repo installs no Herdr plugins — use `lazygit` (`Ctrl-Space Shift-L`) for diffs.
 - **Agent shows `unknown`?** The integration hook is missing. Re-run:
   ```sh
   herdr integration install claude
