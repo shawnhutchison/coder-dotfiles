@@ -520,6 +520,20 @@ mouse habit for a keystroke and it compounds fast.
   ```
   The `--prefix` matters: a plain `npm i -g` lands inside whichever nodejs asdf pins, so
   the binary disappears from `PATH` the moment a project's `.tool-versions` changes.
+- **`tree-sitter: ... version 'GLIBC_2.39' not found` when nvim opens?** The box runs
+  Ubuntu 22.04 (glibc 2.35) and upstream builds the tree-sitter release binary on
+  ubuntu-24.04. There is no musl asset, and every release meeting nvim-treesitter's
+  0.26.1 floor is built the same way, so an older tag does not help. `install.sh` now
+  test-runs the download and builds from source when it will not load. By hand:
+  ```sh
+  rm -f ~/.local/bin/tree-sitter
+  curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+  ~/.cargo/bin/cargo install --locked --root ~/.local tree-sitter-cli
+  tree-sitter --version           # expect 0.26.x
+  ```
+  Then re-open nvim; `require('nvim-treesitter').install()` runs on startup and pulls the
+  parsers it could not build before. Deleting the broken binary is not optional — the old
+  skip-guard only tested that the file existed, so a re-provision left it in place.
 - **Icons look like boxes?** The file-tree/statusline icons need a **Nerd Font**.
   In Ghostty, set one in your config, e.g. `font-family = "JetBrainsMono Nerd Font"`.
 - **Theming:** three surfaces are pinned to **Tokyo Night Night** (`#1a1b26`), the

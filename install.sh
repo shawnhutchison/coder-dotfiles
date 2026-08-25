@@ -43,35 +43,91 @@ if [ "$OS" = "Linux" ]; then
     echo "  Neovim already installed"
   fi
 
-  # tree-sitter CLI — nvim-treesitter's `main` branch builds parsers with it
-  # (>= 0.26.1; upstream is explicit that it must be a package-manager build,
-  # not npm). Without it `require('nvim-treesitter').install()` produces no
-  # parsers and you silently lose all syntax highlighting, so this is a real
-  # dependency of .config/nvim/init.lua, not a nicety. The C compiler it shells
-  # out to comes from build-essential above. Same release-binary-into-
-  # ~/.local/bin pattern as fzf/glow/lazygit, except the asset is a bare
-  # gzipped binary rather than a tarball.
-  if ! command -v tree-sitter &> /dev/null; then
+  # tree-sitter CLI — nvim-treesitter's `main` branch shells out to it for every
+  # parser build (>= 0.26.1; upstream is explicit that it must not be the npm
+  # build). Without it `require('nvim-treesitter').install()` produces no parsers
+  # and you silently lose all syntax highlighting, so this is a real dependency
+  # of .config/nvim/init.lua, not a nicety. The C compiler it shells out to in
+  # turn comes from build-essential above.
+  #
+  # Two ways in, tried in order, because the fast one does not always run here:
+  #
+  #  1. The release binary. Upstream builds linux-x64 on ubuntu-24.04 against
+  #     x86_64-unknown-linux-gnu — no musl asset, no `cross` — so the binary
+  #     needs GLIBC_2.39 and dies on an Ubuntu 22.04 box (glibc 2.35) with
+  #       tree-sitter: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.39'
+  #       not found (required by tree-sitter)
+  #     which surfaces as an `[nvim-treesitter/install/...]` error on every nvim
+  #     start. Pinning an older tag is not an escape: every release meeting
+  #     nvim-treesitter's 0.26.1 floor is built the same way.
+  #  2. cargo. Slow (a few minutes) and it pulls a Rust toolchain, but it links
+  #     against the glibc actually on the box, so it works everywhere.
+  #
+  # The guard *runs* `tree-sitter --version` rather than testing `command -v`.
+  # An existence test is what let the broken download above survive every
+  # re-provision: the file was there, so the block skipped, forever.
+  TS_BIN="$HOME/.local/bin/tree-sitter"
+  [ -d "$HOME/.cargo/bin" ] && export PATH="$HOME/.cargo/bin:$PATH"
+
+  if tree-sitter --version &> /dev/null; then
+    echo "  tree-sitter CLI already installed ($(tree-sitter --version))"
+  else
+    rm -f "$TS_BIN"
+    hash -r 2> /dev/null || true
+
     case "$(uname -m)" in
       x86_64|amd64)  TS_ARCH="x64" ;;
       aarch64|arm64) TS_ARCH="arm64" ;;
       *)             TS_ARCH="" ;;
     esac
+    [ -z "$TS_ARCH" ] && echo "  No release binary for $(uname -m); going to source"
 
-    if [ -n "$TS_ARCH" ]; then
-      if curl -fsSLo /tmp/tree-sitter.gz \
-        "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${TS_ARCH}.gz"; then
-        mkdir -p ~/.local/bin
-        gunzip -c /tmp/tree-sitter.gz > ~/.local/bin/tree-sitter
-        chmod +x ~/.local/bin/tree-sitter
-        rm /tmp/tree-sitter.gz
-        echo "  Installed tree-sitter CLI"
-      else
-        echo "  Skipped tree-sitter CLI (download failed) — nvim will have no"
-        echo "  treesitter highlighting until it is installed"
-      fi
+    if [ -n "$TS_ARCH" ] && curl -fsSLo /tmp/tree-sitter.gz \
+      "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${TS_ARCH}.gz"; then
+      mkdir -p "$HOME/.local/bin"
+      gunzip -c /tmp/tree-sitter.gz > "$TS_BIN"
+      chmod +x "$TS_BIN"
+      rm -f /tmp/tree-sitter.gz
+    fi
+
+    # Test-run it. A binary that unpacked fine but cannot load its libc is worse
+    # than none: nvim-treesitter reports a build error on every file open.
+    if "$TS_BIN" --version &> /dev/null; then
+      echo "  Installed tree-sitter CLI $("$TS_BIN" --version)"
     else
-      echo "  Skipped tree-sitter CLI (unsupported arch $(uname -m))"
+      rm -f "$TS_BIN"
+
+      if ! command -v cargo &> /dev/null; then
+        echo "  Release binary needs a newer glibc than this box has; installing"
+        echo "  Rust to build the tree-sitter CLI from source..."
+        # --profile minimal: rustc + cargo, no docs or clippy. --no-modify-path
+        # keeps rustup out of .zshrc — the PATH export above is what finds cargo
+        # here and on every later run of this script.
+        if curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
+          | sh -s -- -y --profile minimal --no-modify-path > /dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "  Installed $(rustc --version 2> /dev/null || echo Rust)"
+        else
+          echo "  Skipped Rust (rustup install failed)"
+        fi
+      fi
+
+      if command -v cargo &> /dev/null; then
+        echo "  Building tree-sitter CLI from source (a few minutes, once per box)..."
+        # stdout muted, stderr left alone on purpose: cargo's progress lines go
+        # to stderr, and a silent multi-minute build inside Coder's dotfiles
+        # runner is indistinguishable from a hang.
+        if cargo install --locked --root "$HOME/.local" tree-sitter-cli > /dev/null; then
+          echo "  Installed tree-sitter CLI $("$TS_BIN" --version)"
+        else
+          echo "  Failed to build tree-sitter CLI — nvim will have no treesitter"
+          echo "  highlighting until this succeeds:"
+          echo "    cargo install --locked --root ~/.local tree-sitter-cli"
+        fi
+      else
+        echo "  Skipped tree-sitter CLI (no cargo) — nvim will have no treesitter"
+        echo "  highlighting"
+      fi
     fi
   fi
 
