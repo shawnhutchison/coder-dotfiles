@@ -213,6 +213,7 @@ ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.to
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config  # Ghostty theme + clipboard-write
 
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
+exec zsh && dev-pin-herdr    # pin Herdr to 0.8.0 — see "Herdr is pinned" below
 ```
 
 See the README's **Setup → On your Mac** for the canonical version of this. The
@@ -232,21 +233,53 @@ Don't run the full `install.sh` on your Mac — it installs Claude Code, copies 
 config, and wires the agent-state hook, none of which belong on a machine that isn't
 running agents.
 
-### Keep the two Herdr versions in step
+### Herdr is pinned to 0.8.0 on both machines
 Both machines have Herdr, doing different jobs — but they have to speak the same
 protocol. When you attach, the client compares its protocol version to the remote
 server's. **On a mismatch it replaces the remote binary and restarts the server,
 which ends whatever was running there** — including sessions you wanted to keep.
+That is also why a one-sided pin does not hold: pin only the box and the next
+`dev` pushes the Mac's version back over it.
 
-Check before you assume a session is safe:
-```sh
-dev-version <workspace>    # prints local and remote versions side by side
+**Why 0.8.0 and not latest.** 0.8.2 (2026-08-19) regressed the shutdown path. It
+now reaps every pane before the server snapshots, so a Coder stop leaves zero live
+panes, Herdr reads that as *you* having closed everything, and **deletes**
+`session.json` instead of saving it. You reattach the next morning to one blank
+pane with every Claude session gone. Same event, two versions, from the box's own
+`~/.config/herdr/herdr-server.log`:
+
+```
+0.8.0   19:46:50.397  server shutdown initiated
+        19:46:50.546  session saved  workspaces=1
+        19:46:50.546  pane session terminated pane=2      <- after the save
+
+0.8.2   02:40:47.245  pane session terminated pane=3, pane=1
+        02:40:47.245  server shutdown initiated           <- zero panes left
+        02:40:47.320  session cleared
 ```
 
-If they've drifted, update deliberately rather than discovering it mid-attach:
+The matching 0.8.2 changelog entry is #2612, *"Server stop requests now bypass pane
+and API traffic."*
+
+**Where the pin lives.** Three places, and they move together:
+- `install.sh` — `HERDR_VERSION="0.8.0"`, installs the release asset directly.
+  It no longer runs `herdr update`.
+- `local/mac.zsh` — `HERDR_PIN="0.8.0"`, applied by `dev-pin-herdr`. That drops the
+  binary in `~/.local/bin`, which precedes `/opt/homebrew/bin` on `PATH`, so it
+  shadows the brew build. `brew upgrade herdr` stays harmless; `rm ~/.local/bin/herdr`
+  reverts to brew.
+- `.config/herdr/config.toml` — `[update] version_check = false`, or Herdr's own
+  half-hourly check walks the pin forward on its own.
+
+Check all three at once before you assume a session is safe:
 ```sh
-brew upgrade herdr                      # local
-ssh coder.<workspace> herdr update      # remote
+dev-version <workspace>    # prints pin, local and remote side by side
+```
+
+To raise the pin when upstream fixes this, edit all three, then:
+```sh
+dev-pin-herdr              # local, uses the new HERDR_PIN
+ssh coder.<workspace> bash ~/dev/coder-dotfiles/install.sh   # remote
 ```
 
 This is why `install.sh` installs Herdr on the workspace even though `--remote` can
@@ -520,6 +553,20 @@ mouse habit for a keystroke and it compounds fast.
   ```
   The `--prefix` matters: a plain `npm i -g` lands inside whichever nodejs asdf pins, so
   the binary disappears from `PATH` the moment a project's `.tool-versions` changes.
+- **`tree-sitter: ... version 'GLIBC_2.39' not found` when nvim opens?** The box runs
+  Ubuntu 22.04 (glibc 2.35) and upstream builds the tree-sitter release binary on
+  ubuntu-24.04. There is no musl asset, and every release meeting nvim-treesitter's
+  0.26.1 floor is built the same way, so an older tag does not help. `install.sh` now
+  test-runs the download and builds from source when it will not load. By hand:
+  ```sh
+  rm -f ~/.local/bin/tree-sitter
+  curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+  ~/.cargo/bin/cargo install --locked --root ~/.local tree-sitter-cli
+  tree-sitter --version           # expect 0.26.x
+  ```
+  Then re-open nvim; `require('nvim-treesitter').install()` runs on startup and pulls the
+  parsers it could not build before. Deleting the broken binary is not optional — the old
+  skip-guard only tested that the file existed, so a re-provision left it in place.
 - **Icons look like boxes?** The file-tree/statusline icons need a **Nerd Font**.
   In Ghostty, set one in your config, e.g. `font-family = "JetBrainsMono Nerd Font"`.
 - **Theming:** three surfaces are pinned to **Tokyo Night Night** (`#1a1b26`), the

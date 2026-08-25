@@ -169,10 +169,17 @@ mkdir -p ~/.config/herdr
 ln -sfn ~/dev/coder-dotfiles/.config/herdr/config.toml ~/.config/herdr/config.toml
 ln -sfn ~/dev/coder-dotfiles/local/ghostty/config ~/.config/ghostty/config
 echo 'source ~/dev/coder-dotfiles/local/mac.zsh' >> ~/.zshrc
+exec zsh && dev-pin-herdr   # pin Herdr to 0.8.0, matching install.sh
 ```
 Both Mac-side configs are symlinks into this repo rather than copies, so neither can
 drift: edit the file here and the Mac has it. Only `config.toml` is linked, never the
 `~/.config/herdr` directory — that also holds the client's own state.
+
+`dev-pin-herdr` is not optional. Herdr 0.8.2 deletes the box's `session.json` on the
+nightly Coder shutdown instead of saving it, so you reattach to one blank pane with
+every Claude session gone. Both machines have to hold the same pin — `herdr --remote`
+resyncs the box's binary to the client's version on attach, so pinning one side alone
+is undone the next time you run `dev`. See CHEATSHEET §3, "Herdr is pinned to 0.8.0".
 
 The local Herdr config is for the **theme** — the client paints the chrome, so
 without it the UI is wrong. It is *not* where your keys come from: `dev` attaches with

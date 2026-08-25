@@ -43,35 +43,91 @@ if [ "$OS" = "Linux" ]; then
     echo "  Neovim already installed"
   fi
 
-  # tree-sitter CLI — nvim-treesitter's `main` branch builds parsers with it
-  # (>= 0.26.1; upstream is explicit that it must be a package-manager build,
-  # not npm). Without it `require('nvim-treesitter').install()` produces no
-  # parsers and you silently lose all syntax highlighting, so this is a real
-  # dependency of .config/nvim/init.lua, not a nicety. The C compiler it shells
-  # out to comes from build-essential above. Same release-binary-into-
-  # ~/.local/bin pattern as fzf/glow/lazygit, except the asset is a bare
-  # gzipped binary rather than a tarball.
-  if ! command -v tree-sitter &> /dev/null; then
+  # tree-sitter CLI — nvim-treesitter's `main` branch shells out to it for every
+  # parser build (>= 0.26.1; upstream is explicit that it must not be the npm
+  # build). Without it `require('nvim-treesitter').install()` produces no parsers
+  # and you silently lose all syntax highlighting, so this is a real dependency
+  # of .config/nvim/init.lua, not a nicety. The C compiler it shells out to in
+  # turn comes from build-essential above.
+  #
+  # Two ways in, tried in order, because the fast one does not always run here:
+  #
+  #  1. The release binary. Upstream builds linux-x64 on ubuntu-24.04 against
+  #     x86_64-unknown-linux-gnu — no musl asset, no `cross` — so the binary
+  #     needs GLIBC_2.39 and dies on an Ubuntu 22.04 box (glibc 2.35) with
+  #       tree-sitter: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.39'
+  #       not found (required by tree-sitter)
+  #     which surfaces as an `[nvim-treesitter/install/...]` error on every nvim
+  #     start. Pinning an older tag is not an escape: every release meeting
+  #     nvim-treesitter's 0.26.1 floor is built the same way.
+  #  2. cargo. Slow (a few minutes) and it pulls a Rust toolchain, but it links
+  #     against the glibc actually on the box, so it works everywhere.
+  #
+  # The guard *runs* `tree-sitter --version` rather than testing `command -v`.
+  # An existence test is what let the broken download above survive every
+  # re-provision: the file was there, so the block skipped, forever.
+  TS_BIN="$HOME/.local/bin/tree-sitter"
+  [ -d "$HOME/.cargo/bin" ] && export PATH="$HOME/.cargo/bin:$PATH"
+
+  if tree-sitter --version &> /dev/null; then
+    echo "  tree-sitter CLI already installed ($(tree-sitter --version))"
+  else
+    rm -f "$TS_BIN"
+    hash -r 2> /dev/null || true
+
     case "$(uname -m)" in
       x86_64|amd64)  TS_ARCH="x64" ;;
       aarch64|arm64) TS_ARCH="arm64" ;;
       *)             TS_ARCH="" ;;
     esac
+    [ -z "$TS_ARCH" ] && echo "  No release binary for $(uname -m); going to source"
 
-    if [ -n "$TS_ARCH" ]; then
-      if curl -fsSLo /tmp/tree-sitter.gz \
-        "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${TS_ARCH}.gz"; then
-        mkdir -p ~/.local/bin
-        gunzip -c /tmp/tree-sitter.gz > ~/.local/bin/tree-sitter
-        chmod +x ~/.local/bin/tree-sitter
-        rm /tmp/tree-sitter.gz
-        echo "  Installed tree-sitter CLI"
-      else
-        echo "  Skipped tree-sitter CLI (download failed) — nvim will have no"
-        echo "  treesitter highlighting until it is installed"
-      fi
+    if [ -n "$TS_ARCH" ] && curl -fsSLo /tmp/tree-sitter.gz \
+      "https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${TS_ARCH}.gz"; then
+      mkdir -p "$HOME/.local/bin"
+      gunzip -c /tmp/tree-sitter.gz > "$TS_BIN"
+      chmod +x "$TS_BIN"
+      rm -f /tmp/tree-sitter.gz
+    fi
+
+    # Test-run it. A binary that unpacked fine but cannot load its libc is worse
+    # than none: nvim-treesitter reports a build error on every file open.
+    if "$TS_BIN" --version &> /dev/null; then
+      echo "  Installed tree-sitter CLI $("$TS_BIN" --version)"
     else
-      echo "  Skipped tree-sitter CLI (unsupported arch $(uname -m))"
+      rm -f "$TS_BIN"
+
+      if ! command -v cargo &> /dev/null; then
+        echo "  Release binary needs a newer glibc than this box has; installing"
+        echo "  Rust to build the tree-sitter CLI from source..."
+        # --profile minimal: rustc + cargo, no docs or clippy. --no-modify-path
+        # keeps rustup out of .zshrc — the PATH export above is what finds cargo
+        # here and on every later run of this script.
+        if curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
+          | sh -s -- -y --profile minimal --no-modify-path > /dev/null 2>&1; then
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "  Installed $(rustc --version 2> /dev/null || echo Rust)"
+        else
+          echo "  Skipped Rust (rustup install failed)"
+        fi
+      fi
+
+      if command -v cargo &> /dev/null; then
+        echo "  Building tree-sitter CLI from source (a few minutes, once per box)..."
+        # stdout muted, stderr left alone on purpose: cargo's progress lines go
+        # to stderr, and a silent multi-minute build inside Coder's dotfiles
+        # runner is indistinguishable from a hang.
+        if cargo install --locked --root "$HOME/.local" tree-sitter-cli > /dev/null; then
+          echo "  Installed tree-sitter CLI $("$TS_BIN" --version)"
+        else
+          echo "  Failed to build tree-sitter CLI — nvim will have no treesitter"
+          echo "  highlighting until this succeeds:"
+          echo "    cargo install --locked --root ~/.local tree-sitter-cli"
+        fi
+      else
+        echo "  Skipped tree-sitter CLI (no cargo) — nvim will have no treesitter"
+        echo "  highlighting"
+      fi
     fi
   fi
 
@@ -211,23 +267,65 @@ fi
 # Terminal workspace manager (replaces tmux). Unlike tmux, Herdr persists its
 # session layout to ~/.config/herdr/session.json and restores it when the server
 # next starts — which is what makes a nightly Coder shutdown survivable.
+#
+# Pinned to a version, deliberately. This used to run `herdr update` on every
+# provision; on 2026-08-24 that walked the box to 0.8.2, and 0.8.2 regressed the
+# shutdown path. It now reaps every pane before the server snapshots, so a
+# machine stop leaves zero live panes, Herdr reads that as "the user closed
+# everything", and *deletes* session.json rather than saving it. Same event, two
+# versions, from the box's own herdr-server.log:
+#
+#   0.8.0  19:46:50.397  server shutdown initiated
+#          19:46:50.546  session saved  workspaces=1
+#          19:46:50.546  pane session terminated pane=2      <- after the save
+#
+#   0.8.2  02:40:47.245  pane session terminated pane=3, pane=1
+#          02:40:47.245  server shutdown initiated           <- zero panes left
+#          02:40:47.320  session cleared
+#
+# The matching 0.8.2 changelog entry is #2612, "Server stop requests now bypass
+# pane and API traffic". Raise the pin once a release fixes this — and raise the
+# Mac's at the same time (see local/mac.zsh). `herdr --remote` resyncs the
+# server binary to the *client's* version on attach, so a one-sided pin is
+# undone the next time you run `dev`.
+#
+# `[update] version_check = false` in .config/herdr/config.toml is the other
+# half: without it Herdr's own half-hourly check walks the pin forward again.
+#
+# 0.8.0 also clears the reviewr plugin's gate — its manifest sets
+# min_herdr_version = 0.7.5.
+HERDR_VERSION="0.8.0"
+
 echo ""
-echo "Installing Herdr..."
-if ! command -v herdr &> /dev/null; then
-  # Official installer; drops the binary in ~/.local/bin (already on PATH).
-  curl -fsSL https://herdr.dev/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
-  echo "  Installed Herdr ($(herdr --version 2>/dev/null || echo unknown))"
+echo "Installing Herdr $HERDR_VERSION..."
+case "$(uname -m)" in
+  x86_64|amd64)  HERDR_ARCH="x86_64" ;;
+  aarch64|arm64) HERDR_ARCH="aarch64" ;;
+  *)             HERDR_ARCH="" ;;
+esac
+# This block is outside the Linux/Darwin split above, so name the platform
+# rather than hardcoding linux — the asset names are herdr-<os>-<arch>.
+[ "$OS" = "Darwin" ] && HERDR_OS="macos" || HERDR_OS="linux"
+mkdir -p "$HOME/.local/bin"
+
+if [ "$(herdr --version 2> /dev/null | awk '{print $2}')" = "$HERDR_VERSION" ]; then
+  echo "  Herdr already at $HERDR_VERSION"
+elif [ -z "$HERDR_ARCH" ]; then
+  echo "  Skipped — no Herdr release asset for $(uname -m)"
+elif curl -fsSLo "$HOME/.local/bin/herdr.new" \
+  "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-${HERDR_OS}-${HERDR_ARCH}"; then
+  # Staged beside the target and renamed, not downloaded over it: rename is
+  # atomic on the same filesystem and works even while a server holds the old
+  # binary open, which an in-place write would refuse with "Text file busy".
+  chmod +x "$HOME/.local/bin/herdr.new"
+  mv "$HOME/.local/bin/herdr.new" "$HOME/.local/bin/herdr"
+  hash -r 2> /dev/null || true
+  echo "  Installed Herdr $(herdr --version 2> /dev/null || echo unknown)"
 else
-  # Already present — upgrade in place so a re-provisioned box lands on the
-  # latest Herdr rather than drifting (see CHEATSHEET, "Keep the two Herdr
-  # versions in step"). This also clears the reviewr plugin's version gate: its
-  # manifest sets min_herdr_version = 0.7.5, so an older Herdr makes the review
-  # pane refuse to start. Non-fatal: a no-op or a network blip shouldn't abort
-  # the install under `set -e`.
-  echo "  Herdr already installed ($(herdr --version 2>/dev/null || echo unknown)); updating..."
-  herdr update || true
-  echo "  Herdr now at $(herdr --version 2>/dev/null || echo unknown)"
+  rm -f "$HOME/.local/bin/herdr.new"
+  echo "  Skipped — could not download Herdr $HERDR_VERSION"
+  command -v herdr &> /dev/null \
+    && echo "  Leaving $(herdr --version 2> /dev/null || echo unknown) in place"
 fi
 
 
@@ -303,7 +401,8 @@ fi
 # reviewr (github.com/persiyanov/herdr-reviewr): a code-review sidebar for an
 # agent's diff — view changes, add line comments, send them back to the agent.
 # `herdr plugin install` fetches the prebuilt binary from the plugin's GitHub
-# release; no Rust toolchain needed. Requires Herdr >= 0.7.5 (the update above).
+# release; no Rust toolchain needed. Requires Herdr >= 0.7.5, which the pinned
+# HERDR_VERSION above satisfies — check it again if you ever lower the pin.
 echo ""
 echo "Installing Herdr plugins..."
 if command -v herdr &> /dev/null; then
