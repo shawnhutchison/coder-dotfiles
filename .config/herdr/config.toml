@@ -140,7 +140,7 @@ open_notification_target = "prefix+o"
 
 # Jump straight into a Claude Code pane.
 #
-# Was prefix+alt+c (and glow/lazygit/reviewr below were prefix+alt+m/g/r).
+# Was prefix+alt+c (and glow/lazygit below were prefix+alt+m/g).
 # Over the Mac-to-Coder remote setup, herdr's prefix-wait reads the ESC byte
 # that starts an alt+<key> chord as "cancel prefix" before the following key
 # ever arrives — confirmed with `cat -v`: Option+letter reaches the remote pty
@@ -177,16 +177,6 @@ command = "lazygit"
 description = "lazygit"
 width = "90%"
 height = "90%"
-
-# reviewr — toggle the code-review pane (github.com/persiyanov/herdr-reviewr).
-# type = "shell" runs the invoke detached, so it opens/closes reviewr's own split
-# in place rather than spawning a throwaway pane or popup. "d" for diff review —
-# plain r/shift+r are already resize_mode/reload_config.
-[[keys.command]]
-key = "prefix+d"
-type = "shell"
-command = "herdr plugin action invoke toggle --plugin persiyanov.reviewr"
-description = "toggle reviewr"
 
 # --- Worktrees ---------------------------------------------------------------
 [worktrees]

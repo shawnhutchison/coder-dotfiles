@@ -52,21 +52,11 @@ reason the stack is Herdr rather than tmux.
 | **Neovim** | Editor + file navigator | `.config/nvim/init.lua` |
 | **Claude Code** | AI coding agent, one per pane | `.claude/` |
 | **CLI tools** | `rg` `fd` `fzf` `jq` `glow` `lazygit` | installed by `install.sh` |
-| **reviewr** | Herdr plugin: review an agent's diff, comment, send back | `.config/herdr/plugins/persiyanov.reviewr.toml` |
 
 ### Herdr's model
 `session → workspace → tab → pane`. One workspace per project; the sidebar
 (`Ctrl-Space b`) lists workspaces and every live agent with a status icon. The prefix is
 **`Ctrl-Space`**. Full key reference is in the CHEATSHEET.
-
-### The reviewr plugin
-[`persiyanov/herdr-reviewr`](https://github.com/persiyanov/herdr-reviewr) is installed
-automatically by `install.sh` (`herdr plugin install`, prebuilt binary — no Rust
-toolchain). It opens a review pane beside an agent showing its diff, and lets you attach
-line comments that go back to the agent's input. It requires Herdr ≥ 0.7.5, which the
-in-place `herdr update` in `install.sh` guarantees. Its config is deliberately one line
-(`theme = "tokyo-night"`): per the plugin's spec a single unknown key invalidates the
-whole file and the pane then does nothing.
 
 ---
 
@@ -74,8 +64,7 @@ whole file and the pane then does nothing.
 
 The three surfaces that let you pick a variant (Ghostty, Neovim, Herdr) are pinned to
 **Night** (background `#1a1b26`), not Storm (whose `#24283b` reads blue against a dark
-terminal). The reviewr plugin shares the same palette *by name* — `tokyo-night` is its
-only dark Tokyo variant, with no separate night/storm split — so it lines up too. Change
+terminal). Change
 one, change the rest or they drift:
 
 | Surface | File | How it's set |
@@ -83,7 +72,6 @@ one, change the rest or they drift:
 | Ghostty | `local/ghostty/config` | explicit `background`/`palette` hexes |
 | Neovim | `.config/nvim/init.lua` | `tokyonight` with `style = "night"` |
 | Herdr | `.config/herdr/config.toml` | `[theme.custom]` pins every token |
-| reviewr | `.config/herdr/plugins/persiyanov.reviewr.toml` | `theme = "tokyo-night"` (shared name) |
 
 These files are the *source*. The Mac client reads its own local copies of the Ghostty
 and Herdr configs — those copies are what actually render — so keep them in sync (the
@@ -103,8 +91,8 @@ safe to re-run — and ordered deliberately:
 
 1. **Core packages** — `zsh git curl jq ripgrep fd fzf neovim glow lazygit`. On Linux the
    ones apt lacks (nvim, fzf, glow, lazygit) come as release tarballs into `~/.local/bin`.
-2. **Herdr** — install if missing, else `herdr update` in place (keeps the box current and
-   clears reviewr's version gate).
+2. **Herdr** — installs the pinned `HERDR_VERSION` release asset. It does *not* run
+   `herdr update`: 0.8.2 deletes `session.json` on shutdown. See "Setup → On your Mac".
 3. **Claude Code CLI** + config (`settings.json`, `CLAUDE.md`, `statusline.sh`).
 4. **Claude Code output style** — symlinks `intuitive.md` into `~/.claude/output-styles/`
    and `jq`-merges `"outputStyle": "intuitive"` into `~/.claude/settings.json`. The merge
@@ -116,7 +104,8 @@ safe to re-run — and ordered deliberately:
 5. **Herdr ↔ Claude hook** — `herdr integration install claude`, so the sidebar shows each
    agent's live state and panes reattach to their conversation after a restart. Runs
    *after* the Claude config copy so it isn't clobbered.
-6. **Herdr plugins** — install + theme reviewr.
+6. **Language servers** — `typescript-language-server` into `~/.npm-global`, which the
+   Claude Code LSP plugins declare but never install.
 7. **Neovim config** + a headless `Lazy sync` so the first launch is instant.
 8. **Herdr config** — copies `config.toml` only, never the directory (that would wipe
    `session.json` / scrollback), then reloads a running server.
@@ -203,11 +192,10 @@ install.sh                    provisioning for the Coder box (idempotent)
 .zshrc                        shell config, sourced into ~/.zshrc on the box
 .config/nvim/init.lua         Neovim: theme, telescope, neo-tree, treesitter, dashboard
 .config/herdr/config.toml     Herdr: theme, keys, sidebar, persistence
-.config/herdr/plugins/        reviewr plugin config (copied to herdr's plugin config dir)
 .claude/                      Claude Code: settings, CLAUDE.md, statusline, commands
 .claude/output-styles/        `intuitive` output style — symlinked into ~/.claude/
 local/ghostty/config          Ghostty (Mac only) — symlinked into ~/.config/ghostty
-local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` (Mac only)
+local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` / `dev-pin-herdr` (Mac only)
 CHEATSHEET.md                 day-to-day keys and workflow
 ```
 

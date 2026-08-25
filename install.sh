@@ -113,6 +113,17 @@ if [ "$OS" = "Linux" ]; then
       fi
 
       if command -v cargo &> /dev/null; then
+        # tree-sitter-cli's default `qjs-rt` feature pulls rquickjs-sys, whose
+        # build script runs bindgen and dlopens libclang.so. Without it the
+        # build dies at:
+        #   Unable to find libclang: "couldn't find any valid shared libraries
+        #   matching: ['libclang.so', ...]"
+        # Not in the apt list at the top of this script because it is ~100MB and
+        # only this fallback needs it.
+        echo "  Installing libclang-dev (bindgen needs it)..."
+        sudo apt-get install -y --no-install-recommends libclang-dev > /dev/null 2>&1 \
+          || echo "  Warning: libclang-dev install failed; the build below will too"
+
         echo "  Building tree-sitter CLI from source (a few minutes, once per box)..."
         # stdout muted, stderr left alone on purpose: cargo's progress lines go
         # to stderr, and a silent multi-minute build inside Coder's dotfiles
@@ -291,9 +302,6 @@ fi
 #
 # `[update] version_check = false` in .config/herdr/config.toml is the other
 # half: without it Herdr's own half-hourly check walks the pin forward again.
-#
-# 0.8.0 also clears the reviewr plugin's gate — its manifest sets
-# min_herdr_version = 0.7.5.
 HERDR_VERSION="0.8.0"
 
 echo ""
@@ -367,7 +375,7 @@ ln -sf "$DOTFILES_DIR/.claude/output-styles/intuitive.md" \
 # match the style's frontmatter `name:` byte for byte.
 if [ -f "$HOME/.claude/settings.json" ] && command -v jq &> /dev/null; then
   # A literal path, not `$(mktemp)` — a bare `VAR=$(...)` that exits non-zero aborts the
-  # whole install under `set -e` (see the fzf and reviewr blocks). Beside the target on
+  # whole install under `set -e` (see the fzf block). Beside the target on
   # purpose: same filesystem, so the `mv` below is atomic.
   SETTINGS_TMP="$HOME/.claude/settings.json.tmp"
   if jq '.outputStyle = "intuitive"' "$HOME/.claude/settings.json" > "$SETTINGS_TMP"; then
@@ -395,40 +403,6 @@ if command -v herdr &> /dev/null; then
   herdr integration install claude && echo "  Agent-state hook installed"
 else
   echo "  Skipped — herdr not on PATH"
-fi
-
-# --- Herdr plugins ---
-# reviewr (github.com/persiyanov/herdr-reviewr): a code-review sidebar for an
-# agent's diff — view changes, add line comments, send them back to the agent.
-# `herdr plugin install` fetches the prebuilt binary from the plugin's GitHub
-# release; no Rust toolchain needed. Requires Herdr >= 0.7.5, which the pinned
-# HERDR_VERSION above satisfies — check it again if you ever lower the pin.
-echo ""
-echo "Installing Herdr plugins..."
-if command -v herdr &> /dev/null; then
-  if herdr plugin list 2>/dev/null | grep -q "reviewr"; then
-    echo "  reviewr already installed"
-  else
-    herdr plugin install -y persiyanov/herdr-reviewr \
-      && echo "  Installed reviewr" \
-      || echo "  Skipped reviewr (install failed)"
-  fi
-
-  # Theme reviewr to match nvim/Herdr/Ghostty. The plugin reads config.toml from
-  # the directory `herdr plugin config-dir` reports — resolved here rather than
-  # hardcoded. We ship only `theme`: per the plugin's config spec a single bad
-  # key invalidates the whole file and the pane then does no work.
-  # `|| true`: don't let a non-zero exit (e.g. plugin not installed) abort the
-  # whole install at this bare assignment under `set -e`.
-  REVIEWR_CFG_DIR="$(herdr plugin config-dir persiyanov.reviewr 2>/dev/null || true)"
-  if [ -n "$REVIEWR_CFG_DIR" ]; then
-    mkdir -p "$REVIEWR_CFG_DIR"
-    cp "$DOTFILES_DIR/.config/herdr/plugins/persiyanov.reviewr.toml" \
-      "$REVIEWR_CFG_DIR/config.toml"
-    echo "  reviewr themed (Tokyo Night)"
-  fi
-else
-  echo "  Skipped Herdr plugins — herdr not on PATH"
 fi
 
 # --- Language servers for Claude Code's LSP plugins ---
