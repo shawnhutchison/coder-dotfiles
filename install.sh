@@ -378,9 +378,9 @@ if [ -f "$HOME/.claude/settings.json" ] && command -v jq &> /dev/null; then
   # whole install under `set -e` (see the fzf block). Beside the target on
   # purpose: same filesystem, so the `mv` below is atomic.
   SETTINGS_TMP="$HOME/.claude/settings.json.tmp"
-  if jq '.outputStyle = "intuitive"' "$HOME/.claude/settings.json" > "$SETTINGS_TMP"; then
+  if jq '.outputStyle = "Intuitive"' "$HOME/.claude/settings.json" > "$SETTINGS_TMP"; then
     mv "$SETTINGS_TMP" "$HOME/.claude/settings.json"
-    echo "  Output style set to 'intuitive'"
+    echo "  Output style set to 'Intuitive'"
   else
     rm -f "$SETTINGS_TMP"
     echo "  Skipped activation — ~/.claude/settings.json is not valid JSON"
@@ -388,6 +388,18 @@ if [ -f "$HOME/.claude/settings.json" ] && command -v jq &> /dev/null; then
 else
   echo "  Skipped activation — no settings.json or no jq"
 fi
+
+# --- Claude Code rules ---
+# ~/.claude/rules/*.md load into every session alongside ~/.claude/CLAUDE.md. Symlinked
+# for the same reason as the output style: a cp goes stale silently.
+echo ""
+echo "Installing Claude Code rules..."
+mkdir -p "$HOME/.claude/rules"
+for rule in "$DOTFILES_DIR"/.claude/rules/*.md; do
+  [ -f "$rule" ] || continue
+  ln -sf "$rule" "$HOME/.claude/rules/$(basename "$rule")"
+  echo "  Linked $(basename "$rule")"
+done
 
 # --- Claude Code skills ---
 # Symlinked for the same reason as the output style: a cp goes stale silently.
