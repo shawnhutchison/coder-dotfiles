@@ -389,6 +389,29 @@ else
   echo "  Skipped activation — no settings.json or no jq"
 fi
 
+# --- Claude Code skills ---
+# Symlinked for the same reason as the output style: a cp goes stale silently.
+# `ln -sfn`, not `ln -sf` — the target is a directory, and without -n a second run
+# resolves *through* the existing symlink and creates skills/docs-pane/docs-pane.
+echo ""
+echo "Installing Claude Code skills..."
+mkdir -p "$HOME/.claude/skills"
+for skill_dir in "$DOTFILES_DIR"/.claude/skills/*/; do
+  [ -d "$skill_dir" ] || continue
+  ln -sfn "${skill_dir%/}" "$HOME/.claude/skills/$(basename "$skill_dir")"
+  echo "  Linked $(basename "$skill_dir")"
+done
+
+# Skill helper scripts go on PATH so SKILL.md can call them by bare name. The
+# skill is used from whatever repo is being reviewed, not from this one, so a
+# repo-relative path would not resolve.
+mkdir -p "$HOME/.local/bin"
+for skill_bin in "$DOTFILES_DIR"/.claude/skills/*/bin/*; do
+  [ -f "$skill_bin" ] || continue
+  chmod +x "$skill_bin"
+  ln -sfn "$skill_bin" "$HOME/.local/bin/$(basename "$skill_bin")"
+done
+
 # --- Herdr <-> Claude Code integration ---
 # Installs ~/.claude/hooks/herdr-agent-state.sh and *merges* a hooks entry into
 # ~/.claude/settings.json. This is why it runs after the block above: that copy

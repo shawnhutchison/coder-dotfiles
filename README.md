@@ -194,6 +194,7 @@ install.sh                    provisioning for the Coder box (idempotent)
 .config/herdr/config.toml     Herdr: theme, keys, sidebar, persistence
 .claude/                      Claude Code: settings, CLAUDE.md, statusline, commands
 .claude/output-styles/        `intuitive` output style — symlinked into ~/.claude/
+.claude/skills/docs-pane/   renders a markdown examples file beside the chat, via glow
 local/ghostty/config          Ghostty (Mac only) — symlinked into ~/.config/ghostty
 local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` / `dev-pin-herdr` (Mac only)
 CHEATSHEET.md                 day-to-day keys and workflow

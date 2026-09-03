@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Render a markdown file with glow in a companion Herdr pane, then return that
+# pane to its shell prompt.
+#
+# Reuses one pane per workspace so a long explanation session that renders a
+# dozen times does not split a dozen slivers. See SKILL.md for the workflow.
+set -euo pipefail
+
+# Plain `glow`, not `glow -p`: the pager would hold the pane and the next
+# `pane run` would type into the pager instead of the shell.
+render_cmd() { printf 'clear && glow -w %s -- %q' "$1" "$2"; }
+
+die() { echo "docs-pane: $*" >&2; exit 1; }
+
+[ "${HERDR_ENV:-}" = 1 ] || die "not running inside a Herdr pane"
+command -v glow >/dev/null || die "glow is not on PATH"
+command -v jq >/dev/null || die "jq is not on PATH"
+
+DOC=${1:-}
+[ -n "$DOC" ] || die "usage: docs-pane <file.md>"
+[ -f "$DOC" ] || die "no such file: $DOC"
+DOC=$(cd "$(dirname "$DOC")" && pwd)/$(basename "$DOC")
+
+STATE="${TMPDIR:-/tmp}/docs-pane-${HERDR_WORKSPACE_ID}"
+
+# A closed pane's ID is never reused, so a stale ID fails here rather than
+# hijacking somebody else's pane.
+pane=""
+if [ -f "$STATE" ]; then
+  pane=$(cat "$STATE")
+  herdr pane get "$pane" >/dev/null 2>&1 || pane=""
+fi
+
+if [ -z "$pane" ]; then
+  # Right, not down: prose reads better beside its examples than under them.
+  pane=$(herdr pane split --current --direction right --cwd "$PWD" --no-focus \
+    | jq -r '.result.pane.pane_id')
+  [ -n "$pane" ] && [ "$pane" != null ] || die "split returned no pane ID"
+  herdr pane rename "$pane" docs >/dev/null
+  echo "$pane" > "$STATE"
+fi
+
+# glow defaults to 80 columns; a split pane rarely is.
+# `|| echo 80` is not redundant: under `set -e` a failing `pane get` would abort
+# here, after the pane and state file already exist.
+cols=$(herdr pane get "$pane" | jq -r '.result.pane.size.cols // .result.pane.cols // 80' || echo 80)
+case $cols in ''|*[!0-9]*) cols=80 ;; esac
+[ "$cols" -gt 8 ] && cols=$((cols - 4))
+
+herdr pane run "$pane" "$(render_cmd "$cols" "$DOC")" >/dev/null
+echo "Rendered $DOC in pane $pane (\"docs\")"
