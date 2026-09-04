@@ -95,12 +95,15 @@ safe to re-run — and ordered deliberately:
    `herdr update`: 0.8.2 deletes `session.json` on shutdown. See "Setup → On your Mac".
 3. **Claude Code CLI** + config (`settings.json`, `CLAUDE.md`, `statusline.sh`).
 4. **Claude Code output style** — symlinks `intuitive.md` into `~/.claude/output-styles/`
-   and `jq`-merges `"outputStyle": "intuitive"` into `~/.claude/settings.json`. The merge
+   and `jq`-merges `"outputStyle": "Intuitive"` into `~/.claude/settings.json`. The merge
    matters: step 3 skips `settings.json` when the box already has one, so a plain copy
    would never activate the style on a re-provision. Caveat: picking a style from
    `/config` writes `outputStyle` to the *project* `.claude/settings.local.json`, which
    outranks `~/.claude/settings.json` — so in any ticket repo where that picker was used,
-   this default loses silently. Delete the key from that repo to fall back to `intuitive`.
+   this default loses silently. Delete the key from that repo to fall back to `Intuitive`.
+   Also symlinks `.claude/rules/*.md` into `~/.claude/rules/`, which load into every
+   session like `CLAUDE.md`; `fable-behavior.md` there teaches the model how to judge a
+   request, do the whole task, and report, with nothing project-specific.
 5. **Herdr ↔ Claude hook** — `herdr integration install claude`, so the sidebar shows each
    agent's live state and panes reattach to their conversation after a restart. Runs
    *after* the Claude config copy so it isn't clobbered.
@@ -193,7 +196,8 @@ install.sh                    provisioning for the Coder box (idempotent)
 .config/nvim/init.lua         Neovim: theme, telescope, neo-tree, treesitter, dashboard
 .config/herdr/config.toml     Herdr: theme, keys, sidebar, persistence
 .claude/                      Claude Code: settings, CLAUDE.md, statusline, commands
-.claude/output-styles/        `intuitive` output style — symlinked into ~/.claude/
+.claude/output-styles/        `Intuitive` output style — symlinked into ~/.claude/
+.claude/rules/                behavioral rules (fable-behavior.md) — symlinked into ~/.claude/
 .claude/skills/docs-pane/   renders a markdown examples file beside the chat, via glow
 local/ghostty/config          Ghostty (Mac only) — symlinked into ~/.config/ghostty
 local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` / `dev-pin-herdr` (Mac only)

@@ -1,5 +1,5 @@
 ---
-name: intuitive
+name: Intuitive
 description: Plain, factual answers in the voice of a colleague explaining something in person
 keep-coding-instructions: true
 ---
