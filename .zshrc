@@ -79,6 +79,11 @@ alias hreload='herdr server reload-config'
 # is deliberately NOT here. It runs on your own machine, not in the workspace,
 # so it lives in local/mac.zsh, which install.sh never copies.
 
+# --- Aliases: coder ---
+# Coder's GitHub external-auth token expires after about 8 hours; this mints a
+# fresh one and hands it to gh.
+alias gh-auth-refresh='coder external-auth access-token coder-auth | gh auth login -h github.com --with-token'
+
 # --- Aliases: misc ---
 alias reload='exec zsh'
 alias cls='clear'
