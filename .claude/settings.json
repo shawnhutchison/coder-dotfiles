@@ -22,6 +22,8 @@
   },
   "outputStyle": "Intuitive",
   "includeCoAuthoredBy": false,
+  "subagentPromptCacheTtl": "1h",
+  "promptSuggestionEnabled": false,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
