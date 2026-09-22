@@ -295,14 +295,18 @@ fi
 #          02:40:47.320  session cleared
 #
 # The matching 0.8.2 changelog entry is #2612, "Server stop requests now bypass
-# pane and API traffic". Raise the pin once a release fixes this — and raise the
-# Mac's at the same time (see local/mac.zsh). `herdr --remote` resyncs the
-# server binary to the *client's* version on attach, so a one-sided pin is
-# undone the next time you run `dev`.
+# pane and API traffic". Fixed in 0.9.0 (#3415, "Interrupted pane exits during
+# host shutdown no longer replace the saved session with an empty session or a
+# new default workspace") — pinned to 0.9.1, the current stable on top of that
+# fix, checked against its changelog for a regression. Raise the pin again only
+# after checking new changelogs against this history, and raise the Mac's at
+# the same time (see local/mac.zsh). `herdr --remote` resyncs the server binary
+# to the *client's* version on attach, so a one-sided pin is undone the next
+# time you run `dev`.
 #
 # `[update] version_check = false` in .config/herdr/config.toml is the other
 # half: without it Herdr's own half-hourly check walks the pin forward again.
-HERDR_VERSION="0.8.0"
+HERDR_VERSION="0.9.1"
 
 echo ""
 echo "Installing Herdr $HERDR_VERSION..."

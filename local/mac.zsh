@@ -123,9 +123,10 @@ dev-ls() { _coder_ws_list; }
 #
 # The pin exists because 0.8.2 deletes the box's session.json on the nightly
 # Coder shutdown instead of saving it: you reattach to a blank single pane and
-# every Claude session is gone. install.sh's HERDR_VERSION comment has the log
-# diff. Keep this value equal to that one.
-HERDR_PIN="0.8.0"
+# every Claude session is gone. Fixed in 0.9.0 (#3415); pinned to 0.9.1 on top
+# of that fix. install.sh's HERDR_VERSION comment has the log diff and the fix
+# history. Keep this value equal to that one.
+HERDR_PIN="0.9.1"
 
 # dev-pin-herdr — install the pinned Herdr into ~/.local/bin, which sits ahead of
 # /opt/homebrew/bin on PATH and so shadows the brew build rather than fighting
