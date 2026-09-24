@@ -24,23 +24,44 @@ if [ "$OS" = "Linux" ]; then
     sudo ln -sf "$(which fdfind)" /usr/local/bin/fd
   fi
 
-  # Neovim — apt ships an old version, so install the latest stable tarball
-  # into ~/.local/nvim (no root needed; ~/.local/bin is already on PATH).
-  if ! command -v nvim &> /dev/null; then
-    NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
-    if ! curl -fsSLo /tmp/nvim.tar.gz "$NVIM_URL"; then
-      # Fall back to the pre-0.10.4 asset name.
-      curl -fsSLo /tmp/nvim.tar.gz \
-        "https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz"
-    fi
+  # Neovim — apt ships an old version, so install the release tarball into
+  # ~/.local/nvim (no root needed; ~/.local/bin is already on PATH).
+  #
+  # Pinned to a version, for the same reason as Herdr below. This used to take
+  # `releases/latest`, so each fresh box got whatever Neovim was newest that day
+  # while lazy-lock.json held the plugins still. A plugin pin is only stable
+  # against the Neovim it was tested on: the float to 0.12 is what broke
+  # nvim-treesitter master and forced the move to `main`, which in turn broke
+  # telescope 0.1.x's previewer. To upgrade, raise NVIM_VERSION, run `:Lazy
+  # update` on a box with the new Neovim, and commit the refreshed
+  # lazy-lock.json in the same commit.
+  NVIM_VERSION="0.12.4"
+  case "$(uname -m)" in
+    x86_64|amd64)  NVIM_ARCH="x86_64" ;;
+    aarch64|arm64) NVIM_ARCH="arm64" ;;
+    *)             NVIM_ARCH="" ;;
+  esac
+
+  if [ "$(nvim --version 2> /dev/null | head -1 | awk '{print $2}')" = "v$NVIM_VERSION" ]; then
+    echo "  Neovim already at $NVIM_VERSION"
+  elif [ -z "$NVIM_ARCH" ]; then
+    echo "  Skipped Neovim — no release asset for $(uname -m)"
+  elif curl -fsSLo /tmp/nvim.tar.gz \
+    "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-${NVIM_ARCH}.tar.gz"; then
+    # Removed only after the download succeeds, so a GitHub outage leaves a
+    # working nvim in place instead of none.
     rm -rf "$HOME/.local/nvim"
     mkdir -p "$HOME/.local/nvim" "$HOME/.local/bin"
     tar -xzf /tmp/nvim.tar.gz -C "$HOME/.local/nvim" --strip-components=1
     ln -sf "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
     rm /tmp/nvim.tar.gz
-    echo "  Installed Neovim"
+    hash -r 2> /dev/null || true
+    echo "  Installed Neovim $NVIM_VERSION"
   else
-    echo "  Neovim already installed"
+    rm -f /tmp/nvim.tar.gz
+    echo "  Skipped — could not download Neovim $NVIM_VERSION"
+    command -v nvim &> /dev/null \
+      && echo "  Leaving $(nvim --version | head -1) in place"
   fi
 
   # tree-sitter CLI — nvim-treesitter's `main` branch shells out to it for every
