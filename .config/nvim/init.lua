@@ -197,7 +197,11 @@ require("lazy").setup({
   -- Fuzzy finder ------------------------------------------------------------
   {
     "nvim-telescope/telescope.nvim",
-    branch = "0.1.x",
+    -- Not the frozen `0.1.x` branch: its previewer calls
+    -- `require("nvim-treesitter.parsers").ft_to_lang`, which nvim-treesitter
+    -- `main` removed, so every file preview in <leader>ff errored. 0.2 uses
+    -- Neovim's own `vim.treesitter.language.get_lang` instead.
+    version = "^0.2.0",
     dependencies = {
       "nvim-lua/plenary.nvim",
       -- Native fzf sorter for speed (compiled with `make`).
