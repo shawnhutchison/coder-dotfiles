@@ -1,0 +1,92 @@
+# ============================================================================
+# Starship prompt — copied to ~/.config/starship.toml by install.sh.
+#
+# One line of powerline segments: directory, git (branch, status counts, lines
+# changed since the last commit), session timer, last command's duration, and
+# exit code. The last two only appear when they have something to say.
+#
+# The session timer is STARSHIP_SESSION_ELAPSED, exported by a precmd hook in
+# .zshrc. Starship has no module for time since the shell started.
+#
+# Colors are Tokyo Night *Night* — the [palettes.tokyonight_night] block at the
+# bottom uses the same hexes as local/ghostty/config and .config/herdr/config.toml.
+# ============================================================================
+"$schema" = 'https://starship.rs/config-schema.json'
+add_newline = true
+palette = "tokyonight_night"
+
+format = """
+$hostname\
+[](fg:blue)$directory[](fg:blue)\
+([](fg:bg bg:magenta)$git_branch$git_status$git_state$git_metrics[](fg:magenta))\
+[](fg:bg bg:teal)${env_var.STARSHIP_SESSION_ELAPSED}[](fg:teal)\
+([](fg:bg bg:yellow)$cmd_duration[](fg:yellow))\
+([](fg:bg bg:red)$status[](fg:red))\
+ $character"""
+
+[hostname]
+ssh_only = true
+format = "[$hostname ](bold red)"
+
+[directory]
+truncate_to_repo = true
+truncation_length = 3
+format = "[ $path$read_only ](fg:bg_dark bg:blue)"
+read_only = " "
+
+[git_branch]
+format = "[  $branch ](fg:bg_dark bg:magenta)"
+
+[git_status]
+format = "([$all_status$ahead_behind ](fg:bg_dark bg:magenta))"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇡${ahead_count}⇣${behind_count}"
+staged = "+${count}"
+modified = "!${count}"
+untracked = "?${count}"
+deleted = "✘${count}"
+renamed = "»${count}"
+conflicted = "=${count}"
+stashed = "≡${count}"
+
+[git_state]
+format = "[$state( $progress_current/$progress_total) ](fg:bg_dark bg:magenta bold)"
+
+[git_metrics]
+disabled = false
+format = "([+$added ](fg:bg_dark bg:magenta))([-$deleted ](fg:bg_dark bg:magenta))"
+
+[env_var.STARSHIP_SESSION_ELAPSED]
+format = "[  $env_value ](fg:bg_dark bg:teal)"
+
+[cmd_duration]
+min_time = 2000
+format = "[  $duration ](fg:bg_dark bg:yellow)"
+
+[status]
+disabled = false
+format = "[  $status ](fg:bg_dark bg:red)"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+# Tokyo Night Night, from tokyonight.nvim colors/storm.lua + night.lua overrides.
+# Same hexes as ghostty/config and herdr/config.toml [theme.custom].
+
+[palettes.tokyonight_night]
+bg           = "#1a1b26"
+bg_dark      = "#16161e"
+bg_highlight = "#292e42"
+fg           = "#c0caf5"
+fg_dark      = "#a9b1d6"
+comment      = "#565f89"
+blue         = "#7aa2f7"
+cyan         = "#7dcfff"
+magenta      = "#bb9af7"
+green        = "#9ece6a"
+teal         = "#73daca"
+yellow       = "#e0af68"
+orange       = "#ff9e64"
+red          = "#f7768e"

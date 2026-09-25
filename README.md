@@ -51,6 +51,7 @@ reason the stack is Herdr rather than tmux.
 | **Herdr** | Workspace/tab/pane manager, agent sidebar — the "window manager" | `.config/herdr/config.toml` |
 | **Neovim** | Editor + file navigator | `.config/nvim/init.lua` |
 | **Claude Code** | AI coding agent, one per pane | `.claude/` |
+| **Starship** | Prompt: directory, git status, session timer, last command's duration | `.config/starship.toml` |
 | **CLI tools** | `rg` `fd` `fzf` `jq` `glow` `lazygit` | installed by `install.sh` |
 
 ### Herdr's model
@@ -62,7 +63,7 @@ reason the stack is Herdr rather than tmux.
 
 ## Theming — Tokyo Night *Night*
 
-The three surfaces that let you pick a variant (Ghostty, Neovim, Herdr) are pinned to
+The four surfaces that let you pick a variant (Ghostty, Neovim, Herdr, Starship) are pinned to
 **Night** (background `#1a1b26`), not Storm (whose `#24283b` reads blue against a dark
 terminal). Change
 one, change the rest or they drift:
@@ -72,6 +73,7 @@ one, change the rest or they drift:
 | Ghostty | `local/ghostty/config` | explicit `background`/`palette` hexes |
 | Neovim | `.config/nvim/init.lua` | `tokyonight` with `style = "night"` |
 | Herdr | `.config/herdr/config.toml` | `[theme.custom]` pins every token |
+| Starship | `.config/starship.toml` | `[palettes.tokyonight_night]` hexes |
 
 These files are the *source*. The Mac client reads its own local copies of the Ghostty
 and Herdr configs — those copies are what actually render — so keep them in sync (the
@@ -93,6 +95,7 @@ safe to re-run — and ordered deliberately:
    ones apt lacks (nvim, fzf, glow, lazygit) come as release tarballs into `~/.local/bin`.
 2. **Herdr** — installs the pinned `HERDR_VERSION` release asset. It does *not* run
    `herdr update`: 0.8.2 deletes `session.json` on shutdown. See "Setup → On your Mac".
+   Then **Starship**, the pinned `STARSHIP_VERSION`, kept at the Mac's brew version.
 3. **Claude Code CLI** + config (`settings.json`, `CLAUDE.md`, `statusline.sh`).
 4. **Claude Code output style** — symlinks `intuitive.md` into `~/.claude/output-styles/`
    and `jq`-merges `"outputStyle": "Intuitive"` into `~/.claude/settings.json`. The merge
@@ -111,7 +114,8 @@ safe to re-run — and ordered deliberately:
    Claude Code LSP plugins declare but never install.
 7. **Neovim config** + a headless `Lazy sync` so the first launch is instant.
 8. **Herdr config** — copies `config.toml` only, never the directory (that would wipe
-   `session.json` / scrollback), then reloads a running server.
+   `session.json` / scrollback), then reloads a running server. Then copies
+   `.config/starship.toml` to `~/.config/starship.toml`.
 9. **zsh / git** — sources this repo's `.zshrc`, sets zsh as the shell, adds git aliases.
 
 State it must never destroy: `~/.config/herdr/session.json` and `session-history.json`
@@ -195,6 +199,7 @@ install.sh                    provisioning for the Coder box (idempotent)
 .zshrc                        shell config, sourced into ~/.zshrc on the box
 .config/nvim/init.lua         Neovim: theme, telescope, neo-tree, treesitter, dashboard
 .config/herdr/config.toml     Herdr: theme, keys, sidebar, persistence
+.config/starship.toml         Starship prompt: segments and Tokyo Night palette
 .claude/                      Claude Code: settings, CLAUDE.md, statusline, commands
 .claude/output-styles/        `Intuitive` output style — symlinked into ~/.claude/
 .claude/rules/                behavioral rules (fable-behavior.md) — symlinked into ~/.claude/

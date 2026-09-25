@@ -6,7 +6,8 @@
 # Tokyo Night *Night* — the same variant as:
 #   .config/nvim/init.lua        style = "night"
 #   .config/herdr/config.toml    [theme.custom]
-# Change all three together or the three surfaces drift apart again.
+#   .config/starship.toml        [palettes.tokyonight_night]
+# Change them together or the surfaces drift apart again.
 #
 # Colors are set explicitly rather than via `theme = tokyonight`, so this does
 # not depend on which theme names your Ghostty build happens to ship.

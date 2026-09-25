@@ -28,12 +28,30 @@ autoload -Uz compinit && compinit
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' menu select
 
-# --- Prompt with git branch ---
-autoload -Uz vcs_info
-precmd() { vcs_info }
-zstyle ':vcs_info:git:*' formats ' (%b)'
-setopt prompt_subst
-PROMPT='%F{cyan}%n%f@%F{yellow}%m%f:%F{green}%~%f%F{magenta}${vcs_info_msg_0_}%f $ '
+# --- Prompt (Starship, config in .config/starship.toml) ---
+if command -v starship &> /dev/null; then
+  # Session timer: time since this shell started. Starship has no module for
+  # it, so this hook exports the value and [env_var] renders it with no fork.
+  zmodload zsh/datetime
+  _session_start=$EPOCHSECONDS
+  _session_elapsed() {
+    local s=$(( EPOCHSECONDS - _session_start ))
+    if (( s < 3600 )); then
+      export STARSHIP_SESSION_ELAPSED="$(( s / 60 ))m"
+    else
+      export STARSHIP_SESSION_ELAPSED="$(( s / 3600 ))h${(l:2::0:)$(( s % 3600 / 60 ))}m"
+    fi
+  }
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _session_elapsed
+  eval "$(starship init zsh)"
+else
+  autoload -Uz vcs_info
+  precmd() { vcs_info }
+  zstyle ':vcs_info:git:*' formats ' (%b)'
+  setopt prompt_subst
+  PROMPT='%F{cyan}%n%f@%F{yellow}%m%f:%F{green}%~%f%F{magenta}${vcs_info_msg_0_}%f $ '
+fi
 
 # --- Key bindings ---
 bindkey -e

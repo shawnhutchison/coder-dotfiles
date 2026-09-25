@@ -362,6 +362,36 @@ else
 fi
 
 
+# --- Starship ---
+# The prompt. Pinned for the same reason as Neovim and Herdr: a fresh box gets
+# the version .config/starship.toml was written against, not whatever is newest
+# that day. Keep it at the Mac's brew version so both render the same config.
+STARSHIP_VERSION="1.26.0"
+
+echo ""
+echo "Installing Starship $STARSHIP_VERSION..."
+case "$(uname -m)" in
+  x86_64|amd64)  STARSHIP_ARCH="x86_64" ;;
+  aarch64|arm64) STARSHIP_ARCH="aarch64" ;;
+  *)             STARSHIP_ARCH="" ;;
+esac
+[ "$OS" = "Darwin" ] && STARSHIP_TARGET="apple-darwin" || STARSHIP_TARGET="unknown-linux-musl"
+
+if [ "$(starship --version 2> /dev/null | awk 'NR == 1 {print $2}')" = "$STARSHIP_VERSION" ]; then
+  echo "  Starship already at $STARSHIP_VERSION"
+elif [ -z "$STARSHIP_ARCH" ]; then
+  echo "  Skipped — no Starship release asset for $(uname -m)"
+elif curl -fsSLo /tmp/starship.tar.gz \
+  "https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-${STARSHIP_ARCH}-${STARSHIP_TARGET}.tar.gz"; then
+  tar -xzf /tmp/starship.tar.gz -C "$HOME/.local/bin" starship
+  rm /tmp/starship.tar.gz
+  hash -r 2> /dev/null || true
+  echo "  Installed Starship $STARSHIP_VERSION"
+else
+  echo "  Skipped — could not download Starship $STARSHIP_VERSION (.zshrc falls back to the plain prompt)"
+fi
+
+
 # --- Claude Code CLI ---
 echo ""
 echo "Installing Claude Code..."
@@ -559,6 +589,13 @@ fi
 if command -v herdr &> /dev/null; then
   herdr server reload-config > /dev/null 2>&1 || true
 fi
+
+# --- Starship config ---
+echo ""
+echo "Configuring Starship..."
+mkdir -p "$HOME/.config"
+cp "$DOTFILES_DIR/.config/starship.toml" "$HOME/.config/starship.toml"
+echo "  Starship configured"
 
 # --- Zsh config ---
 echo ""
