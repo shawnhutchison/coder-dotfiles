@@ -37,7 +37,7 @@ If the corpus is under about 150 KB, read it yourself. Otherwise split it by sta
 For each stage, find:
 
 - **Corrections.** The user redirected scope, rejected output or corrected a claim. Quote them briefly with the session id.
-- **Repeats.** An instruction the user gave more than once. It belongs in a stage file or in `~/.claude/skills/engage/reference/standing-rules.md`.
+- **Repeats.** An instruction the user gave more than once. It belongs in a stage file or in `~/.claude/skills/engage/reference/standing-rules.md`. A rule that holds for one repo or one organization belongs in the org overlay instead, because Engage is public.
 - **Addenda.** Rules added to a brief mid-run. Each one should move up front.
 - **Late facts.** Something learned in a later stage that Planalysis could have found. Name the step that should have caught it.
 - **Rework.** Reverts, extra rounds, discarded runs, re-recorded videos. Estimate the time lost.
@@ -52,7 +52,7 @@ For each stage, find:
 Write `~/.claude/tickets/<KEY>/reflect.md`:
 
 1. **Summary.** Three to five sentences: how the ticket went, and the biggest single improvement.
-2. **Timeline.** One row per stage and round: start, end, duration, sessions. Below it, the `metrics` from `state.md`: time from "Engage." to draft PRs, unplanned factory stops, feedback rounds. Compare them with earlier tickets' `reflect.md` files when they exist.
+2. **Timeline.** One row per stage and round: start, end, duration, sessions. Below it, the `metrics` from `state.md`: time from "Engage." to draft PRs, unplanned factory stops, feedback rounds, and whether the first QA pass held. Count QA failures from `qa/` and the ticket's comments, not from status changes: a status bounce missed most past failures. Compare them with earlier tickets' `reflect.md` files when they exist.
 3. **Proposals.** One entry per proposed change, ranked by time it would have saved:
    - the target file, for example `engage-planalysis` step 5;
    - the exact text to add, change or remove;

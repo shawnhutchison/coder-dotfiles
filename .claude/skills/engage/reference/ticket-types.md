@@ -8,9 +8,10 @@ Planalysis step 2 picks one kind and writes its slug into `state.md`'s `kind`. T
 | `bug` | Bug (often MoB) | A reproduction that has shown the broken state twice, the exact failing path, logs and data, and three to five ruled-out or open hypotheses | Fix plus a test that fails before it | Code, after "Engage." | quick or standard |
 | `techdebt` | Tech debt | The current cost, measured, and what "done" looks like | Change plus a before and after measurement | Code, after "Engage." | quick or standard |
 | `devops` | Devops or infra | Which environments, rollout and rollback, who must approve | Change plus a rollout plan | Code, after "Engage." | standard |
-| `spike` | Spike | What exists, analogous patterns, constraints | What exists, the gaps, where a change would go and why | None | answer |
+| `chore` | Chore: data setup, config, copy, a dependency bump or a runbook task | The runbook or past ticket it repeats, the values to confirm, the run order per environment | The change, the run steps per environment, and a check that the values landed | Code, after "Engage." | quick |
+| `spike` | Spike | The question, who owns the decision, where the answer goes, and whether code may follow | A page with the current state at `file:line`, two or three options with points, a recommendation, open decisions with owners, and follow-up tickets | None | answer |
 | `triage` | Incident triage | The exact failing path, logs, data, one-off or systemic | Cause with evidence, cleanup, lasting fix | None | answer |
-| `deploy-check` | Post-deploy check | Deploy time, the traffic the change touches | Comparison with the day before, a cause for each change, limits | None | answer |
+| `deploy-check` | Post-deploy check | Deploy time, the traffic the change touches, and the ticket's watch list in `plan.md` when one exists | Comparison with the day before, a cause for each change, limits | None | answer |
 | `question` | Behavior or impact question | The call path across repos, flags, linked tickets | A `file:line` trace, flag-gated changes, release risk, then a run that confirms it | None | answer |
 | `grooming` | Grooming | The ticket, its siblings, dependency state | A delta or a rewrite in the ticket's existing format, points, staffing | Jira, on explicit go | answer |
 | `estimate` | Estimate | Refinement answers, the code, sibling points | Points in the estimate format below | Never set points unasked | answer |

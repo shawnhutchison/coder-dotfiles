@@ -15,13 +15,13 @@ It is also the last planned contact with the user before the draft PRs. After "E
 
 **Read-only.** Do not edit repos, switch branches or write to Jira, GitHub or Slack. `git fetch` and database reads are allowed. The only files you write are under `~/.claude/tickets/`.
 
-**Output.** `plan.md` from `~/.claude/skills/engage/templates/plan.md`, plus a chat summary of 300 words or fewer.
+**Output.** `plan.md` from `~/.claude/skills/engage/templates/plan.md`, plus a chat summary of 300 words or fewer. Set `step` in `state.md` as each numbered step starts.
 
 ## 0. Open the ticket
 
-1. Read `~/.claude/tickets/dev-setup.md`. If it is missing or `partial`, say so in one line and offer `/engage setup`. Continue either way.
+1. Read `~/.claude/tickets/dev-setup.md`. If it is missing or `partial`, say so in one line and offer `/engage setup`. Continue either way. Invoke the org overlay if it is installed (`~/.claude/skills/engage/SKILL.md`, "Org overlay").
 2. If `~/.claude/tickets/<KEY>/state.md` exists, resume. Read `state.md` and `plan.md`, tell the user in three lines where things stand, and continue from `focus`.
-3. Otherwise create the folder, `state.md` from `~/.claude/skills/engage/templates/state.md` and `plan.md` from `~/.claude/skills/engage/templates/plan.md`. In `state.md`, set `stage: planalysis`, leave the fields you do not know yet as `null` until step 2, and set `stages.setup` to `complete` only if the Setup marker says so.
+3. Otherwise create the folder, `state.md` from `~/.claude/skills/engage/templates/state.md` and `plan.md` from `~/.claude/skills/engage/templates/plan.md`. In `state.md`, set `stage: planalysis` and `orchestrator`, leave the fields you do not know yet as `null` until step 2, and set `stages.setup` to `complete` only if the Setup marker says so.
 4. `plan.md` grows as you go: fill each section when the step that owns it ends. Step 10 finishes it.
 5. If the user's first message carries context, write every claim, constraint and preference in it into `plan.md` under "User context" before you do anything else. Kickoff messages often hold a dozen decisions.
 
@@ -30,18 +30,22 @@ It is also the last planned contact with the user before the draft PRs. After "E
 The user should not have to tell you which sources exist. Gather these, and record in `plan.md` under Sources what each one said. On the quick track, collect them yourself. On the standard and project tracks, send the epic and PR-history sweep to one worker (`~/.claude/skills/engage/reference/workers.md`) and read the ticket yourself.
 
 - **Jira access.** Get the Atlassian `cloudId` once with `getAccessibleAtlassianResources`, and reuse it.
-- **The ticket.** `getJiraIssue` with summary, description, comment, status, issuetype, labels, priority, parent, issuelinks, subtasks, attachment and `customfield_10026` (Story Points), in markdown. `customfield_10016` is empty in this Jira. Read every comment. The latest decision wins. Save the description and comments to `<KEY>/engage-snapshot.md` with the ticket's `updated` time.
+- **The ticket.** `getJiraIssue` with summary, description, comment, status, issuetype, labels, priority, parent, issuelinks, subtasks, attachment and `customfield_10026` (Story Points), in markdown. `customfield_10016` is empty in this Jira. Read every comment. The latest decision wins. Save the description and comments to `<KEY>/ticket-snapshot.md` with the ticket's `updated` time.
 - **The epic.** `searchJiraIssuesUsingJql` with `parent = <EPIC> ORDER BY key`, all statuses, with summary, status, labels and `customfield_10026`. Leave `assignee` out: its avatar payload is most of the response. Fetch owners only for the few related tickets in step 3.
 - **Sibling epics.** For a project with several epics, find the sibling epics by their shared name prefix. Then search their children for the ticket's key terms: `parent in (<epics>) AND text ~ "<term>"`. On OT-974 this found a dependency the ticket did not link.
 - **Mentions elsewhere.** `text ~ "<KEY>"` finds comments on other tickets that mention this one. Asks for this ticket have turned up in a sibling's comment thread.
 - **Linked tickets in other projects**, with any flags they depend on.
 - **Product docs.** A Confluence PRD linked from the epic or the ticket.
 - **Design sources.** Claude artifacts, design export zips, PDFs, Figma links and screenshots. Record each one's date and author.
-- **Code state.** The repos under `~/workspace` (`~/.claude/skills/engage/reference/repos.md`). The checkouts often hold another ticket's branch, so never read code from the working tree. Run `git -C <repo> fetch origin`, read from `origin/<base>` with `git show` and `git grep`, and cite `path:line` from that ref. Find in-flight work with `git -C <repo> branch -r | grep -i <KEY>` and `gh pr list --repo RoadRunnerEngineering/<repo> --search "<KEY> in:title" --state all`, for this ticket and each dependency. Without `in:title` the search returns other keys.
+- **Code state.** The repos under `~/workspace` (`~/.claude/skills/engage/reference/repos.md`). The checkouts often hold another ticket's branch, so never read code from the working tree. Run `git -C <repo> fetch origin`, read from `origin/<base>` with `git show` and `git grep`, and cite `path:line` from that ref. Find in-flight work with `git -C <repo> branch -r | grep -i <KEY>` and `gh pr list --repo <owner>/<repo> --search "<KEY> in:title" --state all`, for this ticket and each dependency. Without `in:title` the search returns other keys.
 - **Data and runtime.**
   - The dev DB: open a Rails console in a Herdr pane of your own tab (`herdr pane split --current --direction down --no-focus`, then `herdr pane run <pane> "cd ~/workspace/coyote && bundle exec rails console"`). Wrap reads in `ActiveRecord::Base.while_preventing_writes { ... }`.
   - The staging console, for production-like data: ask the user how they reach it the first time, and add the method to `~/.claude/skills/engage/reference/repos.md` in a later dotfiles session.
-  - Datadog, for errors and deploy events.
+  - Datadog, when the ticket has one of these triggers. Record each query and its counts under Sources.
+    - A production error or wrong data: search error tracking and logs over the report window. Record the count, when it was first seen, and the deploy before it. A rescued error shows only in the logs. On a past ticket a swallowed exception took a week to find from code alone.
+    - A change to who can call an endpoint: find its real callers in request logs and traces.
+    - A change to a background job, a scheduled task or an external integration, or a claim about speed or cost: pull the current numbers as the baseline.
+    - Skip it for copy, layout, schema-only work, chores and spikes on new models.
   - A bug's reproduction comes from these sources. Record what you checked and what you could not.
 - **Constraints.** MCP access goes through mintmcp. The Coder apps use username and password login, not SSO. The dotfiles repo is public. Note any feature flags.
 
@@ -50,7 +54,7 @@ The user should not have to tell you which sources exist. Gather these, and reco
 - **Type**: Story, Task, Bug or Spike.
 - **Label**: MoB means users reported it, and the work is usually self-contained. TechDebt is usually self-contained too. No label means project work, so the epic name places it.
 - **Surface**: frontend, backend, both, devops, data, or none for a question, an estimate or a review.
-- **Kind**: one row of `~/.claude/skills/engage/reference/engage-types.md`, written as its slug. The kind sets the deliverable and which writes are allowed.
+- **Kind**: one row of `~/.claude/skills/engage/reference/ticket-types.md`, written as its slug. The kind sets the deliverable and which writes are allowed.
 - **Track**:
 
 | Track | When | Planalysis depth |
@@ -74,8 +78,9 @@ State the type, kind and track in one line, and fill them into `state.md`. The u
 - Number every ask in a table: the ask in the ticket's words, where it came from (description, comment or a sibling's comment), its state today, and the change.
 - Read each section of the ticket for what it is:
   - Asks, technical notes and answered refinement questions are asks or constraints.
-  - A Cause or Current-vs-expected section is a claim. Check it against the code.
+  - A Cause or Current-vs-expected section is a claim. So is "already exists", "should be existing logic" or "frontend only". Check each against the code, and a bug's cause against production logs.
   - Context is background.
+- Run the sufficiency check in `~/.claude/skills/engage/reference/sufficiency.md`, and fill `plan.md`'s Sufficiency table before the interview. It says which gaps to ask the user about and which to default.
 - List every shipped behavior or stored value the ticket changes. Each one needs product sign-off. Where stored values change, it also needs a migration story. This list is where reverts start: on OT-964 a reversed payout rule was built, verified, polished and reviewed before product dropped it.
 - For a ticket that is still pre-refinement, write its asks as questions. Do not invent requirements.
 
@@ -96,9 +101,10 @@ Settle these whenever they apply:
 - **Side effects.** List what dev or test actions touch outside the workspace. Dev ActiveStorage writes to the real staging S3 bucket. The Intacct push calls Intacct and Slack. Note whether the dev DB is shared with QA.
 - **Terms.** Write a glossary for any word the frontend and backend use differently. For example, a coyote "stop" is one tech task, but a lyra "stop" is a location.
 - **Contract sign-off.** When the tech lead or a sibling ticket has a say in the API, get it before code.
-- **Branches.** Branch from staging, or stack on an in-flight branch? Decide the PR base, how to merge the parent forward, and which failures are inherited. Tilt serves every app from `~/workspace/<repo>`, so the build must happen in that checkout. Verify cannot see a worktree. If that checkout holds another ticket's uncommitted work, ask the user how to set it aside.
+- **Branches.** Branch from staging, or stack on an in-flight branch? Decide the PR base, how to merge the parent forward, and which failures are inherited. Tilt serves every app from `~/workspace/<repo>`, so the build must happen in that checkout. Verify cannot see a worktree. If that checkout holds another ticket's uncommitted work, or another ticket's `state.md` has `qa_hold: true`, ask the user how to proceed.
+- **Release.** Name the merge and deploy order across repos and stacked tickets, and any hold: a date, a freeze, or shipping with another ticket. List each run-once task, such as a backfill or a rake task, with its environments. Name the repo's hotfix flow when the fix goes to production.
 
-Questions only product can answer go in `plan.md` under "Questions for product", each with a recommended answer. Build to the recommended answer and keep the rule easy to change. Offer to draft a Jira comment. Post it only on the user's go.
+Questions only product can answer go in `plan.md` under "Questions for product", each with a recommended answer. Build to the recommended answer and keep the rule easy to change. Draft one Jira comment that holds every product question and every recorded default from the sufficiency check, each with its options, the evidence and the recommended answer. Recommend that the user post it before "Engage.". Post it only on the user's go.
 
 Questions for the user that are still open go in `plan.md` under "Open questions for the user". An answer the user has not confirmed goes in Decisions marked "recommended, not confirmed".
 
@@ -111,10 +117,11 @@ Spawn the research workers for the track (`~/.claude/skills/engage/reference/wor
 1. **Code to reuse**: piece, `path:line`, and how this ticket uses it.
 2. **The dominant convention** for each kind of change the ticket makes, with a repo-wide usage count. Kinds include forms, data fetching, mutations, formatters, toasts, state machines and specs. The nearest similar file is not the convention: on OT-916 a plan copied a hand-rolled form while 313 lyra files used react-hook-form.
 3. **Similar past work**: PRs and commits that did something like this (`gh pr list --search`, `git log -S`), with what they did.
-4. **Consumers** of anything the ticket changes: payload builders, client auth, calling views.
-5. **Files likely to change**, each with the change and the reason.
+4. **Consumers** of anything the ticket changes: payload builders, client auth, calling views. For a fix to a repeated pattern, such as an authorization check or escaping, every other site with the same pattern, each in scope or with an owner ticket.
+5. **Files likely to change**, each with the change and the reason. Prefer a filter, a scope or a serializer view on an existing endpoint to a new action.
 6. **Risks**: ordering, locking, migrations, flags, external calls.
-7. **Open questions.**
+7. **Commands**: the lint, type check and test commands that CI runs, scoped to the touched files. Briefs and Implementation's exit use them.
+8. **Open questions.**
 
 Workers label each claim as read from code or checked by running it. Where a check is cheap, they run it: a console read, a request or an EXPLAIN.
 
@@ -136,7 +143,8 @@ Verify starts from this recipe. Without one, verifiers on past tickets fell back
 - List the console writes that setting up the data needs. Step 9 gets them approved.
 - List the Tilt resources and URLs, and any known-good test harness to reuse.
 - List the external calls to avoid or stub.
-- For QA: what testers need, such as seed data, users, flags and tools.
+- Fill the QA hand-off block: where testers test, the apps and URLs, test users and permissions, flags, seed commands, and dev limits that look like bugs.
+- Decide `Watch after deploy`. Say yes when the ticket changes access, a background job, a scheduled task or an external integration, or fixes a production failure.
 
 ## 8. Size the work and plan the build
 
@@ -150,7 +158,7 @@ Walk through the build plan and the recipe, and find every point where the facto
 - **Console writes.** Show the user the list from step 7 and ask them to approve it in this session, in their own words. Auto mode accepts approval only from the user in the session that runs the command. A worker's session never has it, so the orchestrator seeds the data from this session during Verify. Record the approval in `plan.md` under Decisions.
 - **Decisions the build will meet.** Each has a decision in `plan.md` or a recommended answer the factory may build to.
 - **Design.** The binding source is named, so Verify can compare against it without asking.
-- **Design pass.** For a ticket with UI changes, ask whether to schedule a design pass after the round 1 build. Recommend yes, unless the design is final and agreed by the designer. Record the answer as `Design pass: yes` or `no` in `plan.md`'s build plan.
+- **Design pass.** For a ticket with UI changes, ask whether to schedule a design pass after the round 1 build. Recommend yes when the Sufficiency table lists a signal of late change, or when the design is not final and agreed by the designer. Record the answer as `Design pass: yes` or `no` in `plan.md`'s build plan.
 - **Branches and PRs.** Bases, PR bases and the PR title come from the plan.
 - **Environment.** The Tilt resources the build and Verify need are up (`/usr/local/bin/tilt get uiresources`).
 
@@ -172,6 +180,7 @@ Write the points you could not settle into `plan.md` under "The factory will sto
 ## Exit
 
 - Every ask maps to a change, or to a named owner ticket.
+- The Sufficiency table is filled, and each gap was asked about or has a recorded default.
 - No open question would change the plan. Product questions may stay open with their recommended answers.
 - `plan.md` has the "Files likely to change" table and the verification recipe.
 - The console writes are approved in this session, and every other factory stop is settled or listed.

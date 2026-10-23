@@ -15,3 +15,9 @@ Ideas the user already turned down, or that conflict with how this framework wor
 | A fresh agent for every round | Workers idle under an hour are reused while their prompt cache is warm. |
 | A worktree or VM per worker | Tilt serves only the `~/workspace/<repo>` checkout, so Verify cannot see a worktree. |
 | Vertical slices with red-green tests on every slice | The contract split works, and extra tests conflict with the test-quality rule. |
+| Blocking a ticket on missing acceptance criteria | Most past tickets had none. Planalysis writes them as the verification recipe. |
+| Asking the user about every screen detail | Most late changes were presentation details. `reference/sufficiency.md` defaults them and sends them to product in one comment. |
+| One stop for the user per change request | Requesters usually left the call to the developer. `reference/change-requests.md` decides by class. |
+| Datadog in Verify or Review | No past ticket showed it helping in the dev loop. It pays in Planalysis and after deploy. |
+| A full regression pass every round | It conflicts with converging on showstoppers. Verify's probes target the defect classes instead. |
+| Organization-specific rules in Engage | Engage is public. They belong in the private `engage-org` overlay. |

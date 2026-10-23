@@ -6,7 +6,8 @@ You are the <role> worker for <KEY>, "<Jira summary>". The orchestrator is the s
 
 1. `~/.claude/skills/engage/reference/standing-rules.md`. Follow every rule.
 2. `~/.claude/tickets/<KEY>/plan.md`. It wins over every other document.
-3. <other files: contract.md, research reports, the findings to fix>
+3. <the org overlay's conventions for each repo you touch, or the repo's own CLAUDE.md and AGENTS.md when there is no overlay>
+4. <other files: contract.md, research reports, the findings to fix>
 
 ## Task
 
@@ -23,7 +24,7 @@ You are the <role> worker for <KEY>, "<Jira summary>". The orchestrator is the s
 
 ## Verify before DONE
 
-<exact lint, typecheck and spec commands for the touched paths>
+<exact lint, type check and test commands for the touched paths, from the research reports>
 
 ## Timebox
 

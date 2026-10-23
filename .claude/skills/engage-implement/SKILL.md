@@ -14,10 +14,10 @@ This stage runs inside the factory. Do not stop for the user except on the condi
 ## Minimum protocol
 
 - **Entry.** Round 1: Planalysis is complete. Round n > 1: `findings.md` has items marked `fix` for this round. Feedback round: `findings.md` has `feedback r<k>` items marked `fix`, and only those are built.
-- **At entry**, re-fetch the ticket and compare it with `ticket-snapshot.md`. If the asks or comments changed, stop and show the user the change before you build.
-- Set `round` in `state.md`. Workers write reports to `rounds/<n>/`.
-- Every worker brief includes `~/.claude/skills/engage/reference/standing-rules.md` and `plan.md`'s out-of-scope list.
-- **Exit.** Every worker reported DONE, and the tests for the touched code pass. Then move to Verify without waiting for "Engage.", unless round 1 has a design pass. The user can stop the loop at any time.
+- **At entry**, re-fetch the ticket and handle any change with `~/.claude/skills/engage/reference/change-requests.md` before you build.
+- Set `stage: implementation`, `round`, and `step`: `build` for round 1, `fix` for later rounds, `design-pass` during the pass. Workers write reports to `rounds/<n>/`.
+- Every worker brief includes `~/.claude/skills/engage/reference/standing-rules.md`, the org overlay files for its repos, and `plan.md`'s out-of-scope list. Its "Verify before DONE" lists the lint, type check and test commands from the research reports.
+- **Exit.** Every worker reported DONE, and the tests, linters and type checks for the touched code pass. Fix new warnings on touched lines. Do not suppress them. On past tickets, lint and type fixes after the PR opened were the most common follow-up commits. Then move to Verify without waiting for "Engage.", unless round 1 has a design pass. The user can stop the loop at any time.
 
 ## Design pass
 

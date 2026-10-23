@@ -73,7 +73,7 @@ herdr agent wait ot964-be --until blocked --until idle --until done --timeout 36
 - If a watch dies, re-arm it. The user should never have to ask for status.
 - `blocked` is an event. Read the screen with `herdr agent read <name> --source visible --lines 40`, then tell the user what is waiting for approval and in which tab.
 - Never answer a permission prompt for the user, and never relay an approval: auto mode does not count approval passed on by another agent. Console writes run in the orchestrator session (`SKILL.md`, "Auto mode").
-- Update the Workers table in `state.md` when a worker starts, reports or closes.
+- Update the worker's entry in `state.md`'s `workers` list when it starts, reports, goes idle or closes. Set `last_active` each time from `date -u +%FT%TZ`.
 
 ## Correct a running worker
 
@@ -84,7 +84,7 @@ herdr agent wait ot964-be --until blocked --until idle --until done --timeout 36
 ## Close and reuse
 
 - Close the tabs you created when a worker's step is done: `herdr tab close <tab id>`. Never close tabs you did not create.
-- Reuse a worker only if it went idle less than an hour ago, while its prompt cache is still warm. Otherwise close it and start a new worker from the brief.
+- Reuse a worker only while its prompt cache is warm. Before you prompt an existing worker, or SendMessage to one, compute its idle time from `last_active` in `state.md`. Under 55 minutes, reuse it. Otherwise, or when `last_active` is empty, close it and start a new worker from its brief. Log the choice with both times. The margin under the hour covers the time the prompt takes to arrive.
 
 ## Your own context
 

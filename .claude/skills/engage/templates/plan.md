@@ -20,6 +20,15 @@ Every claim, constraint and preference from the user's kickoff message, one line
 | # | Ask, in the ticket's words | Source | State today | Change |
 |---|---|---|---|---|
 
+## Sufficiency
+
+From `reference/sufficiency.md`.
+
+| # | Check | Gap | Resolution: asked, default or product question |
+|---|---|---|---|
+
+Signals of late change: <list, or none>.
+
 ## Behavior this changes
 
 Each shipped rule or stored value the ticket changes, who signed off, and the migration story where stored values change.
@@ -85,7 +94,15 @@ Per repo: what changes and which existing code it reuses, with `path:line`. The 
 - Tilt resources and URLs:
 - Harness to reuse:
 - External calls to avoid or stub:
-- What QA needs:
+- QA hand-off:
+  - Where testers test: this workspace before merge, or a shared environment after deploy:
+  - Apps and URLs testers open:
+  - Test users, and the permission each one needs:
+  - Flags, and the state each test needs:
+  - Seed commands, and the IDs they create:
+  - Dev limits that look like bugs, such as blocked external calls or slow pages:
+- Watch after deploy: yes | no
+  - Watch list, from Verify: each log line or event that is the only signal of a failure, with the Datadog query that finds it:
 
 ## The factory will stop for
 
@@ -94,6 +111,7 @@ Points step 9 could not settle. Empty when the factory can run to draft PRs with
 ## Build plan
 
 - Branches and bases, worktrees, PR base:
+- Release: merge order, deploy order, holds, run-once tasks and their environments, hotfix flow:
 - Design pass: yes | no
 - Workers, order, and what runs in parallel:
 - Estimate, against sibling tickets:
