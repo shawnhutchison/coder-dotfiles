@@ -496,7 +496,7 @@ else
 fi
 
 # --- Language servers for Claude Code's LSP plugins ---
-# Every LSP plugin in the roadrunner-agent-skills marketplace (typescript-lsp,
+# Every LSP plugin in a Claude Code marketplace (typescript-lsp,
 # pyright-lsp, terraform-lsp, ...) only *declares* a command to spawn; none of
 # them install a binary. So `/plugin install typescript-lsp` reports success and
 # then every LSP call on a .ts/.tsx file fails with
@@ -666,11 +666,7 @@ echo "Auth still needed:"
 echo "  gh auth login     # GitHub CLI"
 echo "  claude            # Claude Code (prompts on first run)"
 echo ""
-echo "Then install the Claude Code plugins (inside claude, or as 'claude plugin ...'):"
-echo "  /plugin marketplace add RoadRunnerEngineering/rr-skills"
-echo "  /plugin install typescript-lsp@roadrunner-agent-skills"
-echo "  /plugin install ruby-lsp@roadrunner-agent-skills"
-echo "  /reload-plugins"
+echo "Then add your LSP plugins from your organization's Claude Code marketplace."
 echo ""
 echo "Then start your workspace:"
 echo "  herdr             # starts the server and restores your last layout"

@@ -490,18 +490,8 @@ running — and unlike tmux, it also survives the workspace restarting overnight
 
 ### LSP plugins (go-to-definition for the agent)
 
-`install.sh` does not install these — the marketplace is private, so it needs your
-GitHub auth. Run them once per workspace, in this order:
-
-```sh
-/plugin marketplace add RoadRunnerEngineering/rr-skills
-/plugin install typescript-lsp@roadrunner-agent-skills
-/plugin install ruby-lsp@roadrunner-agent-skills
-/reload-plugins
-```
-
-A good reload reports `2 plugins · 0 skills · 6 agents · 0 hooks · 0 plugin MCP
-servers · 2 plugin LSP servers`.
+`install.sh` does not install these. LSP plugins come from your organization's plugin
+marketplace, added by hand once per workspace.
 
 Each LSP plugin only names a command to spawn; it installs no binary. `install.sh`
 covers that gap for TypeScript (`typescript-language-server` into
@@ -537,7 +527,7 @@ mouse habit for a keystroke and it compounds fast.
   mkdir -p ~/.ssh && chmod 700 ~/.ssh
   curl -fsS https://api.github.com/meta | jq -r '.ssh_keys[]' \
     | sed 's/^/github.com /' >> ~/.ssh/known_hosts
-  git ls-remote git@github.com:RoadRunnerEngineering/rr-skills.git HEAD   # expect a SHA
+  git ls-remote git@github.com:<org>/<private-repo>.git HEAD   # expect a SHA
   ```
   Verify with plain `git`, which inherits `GIT_SSH_COMMAND` from the environment. Calling
   `ssh -T git@github.com` or overriding that variable bypasses the Coder wrapper and

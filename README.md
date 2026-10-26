@@ -146,19 +146,8 @@ git clone <this-repo> ~/dev/coder-dotfiles
 ```
 Then authenticate: `gh auth login`, and `claude` (prompts on first run).
 
-The install trusts github.com's SSH host keys and installs `typescript-language-server`,
-so the only manual step left is adding the Claude Code plugins — the marketplace is
-private, so it needs your auth:
-```sh
-/plugin marketplace add RoadRunnerEngineering/rr-skills
-/plugin install typescript-lsp@roadrunner-agent-skills
-/plugin install ruby-lsp@roadrunner-agent-skills
-/reload-plugins
-```
-
-Or run `/engage setup` in Claude Code. It adds the marketplace and all five LSP plugins,
-installs the language servers they need, checks the Jira, GitHub and Datadog MCP tools,
-and records the result in `~/.claude/tickets/dev-setup.md`.
+The install trusts github.com's SSH host keys and installs `typescript-language-server`.
+LSP plugins come from your organization's plugin marketplace, added by hand once per workspace.
 
 ### On your Mac
 ```sh
@@ -208,8 +197,6 @@ install.sh                    provisioning for the Coder box (idempotent)
 .claude/output-styles/        `Intuitive` output style — symlinked into ~/.claude/
 .claude/rules/                behavioral rules (fable-behavior.md) — symlinked into ~/.claude/
 .claude/skills/docs-pane/   renders a markdown examples file beside the chat, via glow
-.claude/skills/engage/        Engage: routes a ticket through its stages, shared rules and templates
-.claude/skills/engage-*/      one skill per stage: setup, planalysis, implement, verify, review, ship, qa, feedback, reflect
 local/ghostty/config          Ghostty (Mac only) — symlinked into ~/.config/ghostty
 local/mac.zsh                 `dev` / `dev-ls` / `dev-ssh` / `dev-version` / `dev-pin-herdr` (Mac only)
 CHEATSHEET.md                 day-to-day keys and workflow
